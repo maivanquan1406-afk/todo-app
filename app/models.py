@@ -35,6 +35,7 @@ class Todo(TodoBase, table=True):
     owner_id: int = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: Optional[datetime] = None
 
 class TodoCreate(SQLModel):
     title: str
@@ -54,6 +55,7 @@ class TodoResponse(TodoBase):
     owner_id: int
     created_at: datetime
     updated_at: datetime
+    deleted_at: Optional[datetime] = None
 
 class Token(SQLModel):
     access_token: str
