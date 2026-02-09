@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Đăng nhập{% endblock %}
+{% block header %}Đăng nhập{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    {% if error %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endif %}
+    
+    <form id="loginForm" method="post" action="/api/v1/auth/login-page" class="auth-form">
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+      </div>
+      
+      <div class="mb-3">
+        <label for="password" class="form-label">Mật khẩu</label>
+        <div class="pwd-container">
+          <input id="password" type="password" class="form-control" name="password" required>
+          <button id="togglePwd" class="pwd-toggle" type="button" aria-label="Hiện/ẩn mật khẩu">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+    </form>
+
+    <div class="mt-3 text-center">
+      <p>Bạn chưa có tài khoản? <a href="/api/v1/auth/register-page" class="text-primary fw-bold">Đăng ký ngay</a></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const pwd = document.getElementById('password');
+  const toggle = document.getElementById('togglePwd');
+  const eyeIcon = document.getElementById('eyeIcon');
+  let visible = false;
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    visible = !visible;
+    pwd.type = visible ? 'text' : 'password';
+    if (visible) {
+      eyeIcon.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.14 21.14 0 0 1 5-6.11"></path><path d="M1 1l22 22"></path>';
+    } else {
+      eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle>';
+    }
+  });
+
+  const form = document.getElementById('loginForm');
+  form.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      form.submit();
+    }
+  });
+</script>
+{% endblock %}

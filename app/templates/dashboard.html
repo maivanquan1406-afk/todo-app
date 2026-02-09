@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% block title %}Bảng điều khiển{% endblock %}
+{% block header %}Chào mừng, {{ user.email }}{% endblock %}
+{% block content %}
+<div class="row mb-4">
+  <div class="col-md-8">
+    <p class="text-muted">Quản lý các công việc hàng ngày của bạn dễ dàng và hiệu quả.</p>
+  </div>
+  <div class="col-md-4 text-end">
+    <a href="/api/v1/auth/logout" class="btn btn-danger btn-sm">
+      <i class="bi bi-box-arrow-right"></i> Đăng xuất
+    </a>
+  </div>
+</div>
+
+<div class="row mb-5">
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm công việc mới</h5>
+      </div>
+      <div class="card-body">
+        <form id="addTodoForm" method="post" action="/dashboard/todos">
+          <div class="mb-3">
+            <label for="title" class="form-label">Tiêu đề</label>
+            <input type="text" class="form-control" id="title" name="title" placeholder="Nhập tiêu đề công việc..." required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="description" class="form-label">Mô tả (tuỳ chọn)</label>
+            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Nhập mô tả..."></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label for="due_date_display" class="form-label">Hẹn giờ (tuỳ chọn)</label>
+            <input type="text" class="form-control" id="due_date_display" placeholder="Chọn ngày và giờ..." readonly style="cursor: pointer;">
+            <input type="hidden" id="due_date" name="due_date">
+          </div>
+          
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-plus"></i> Thêm công việc
+          </button>
+        </form> 
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-calendar3"></i> Lịch</h5>
+        <div class="d-flex gap-2 align-items-center">
+          <button type="button" class="btn btn-sm btn-light" id="prevMonth" title="Tháng trước">
+            <i class="bi bi-chevron-left"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-light" id="currentMonth" style="min-width: 150px; cursor: pointer;" title="Chọn tháng">
+            <span id="monthYearDisplay">Tháng này</span>
+          </button>
+          <button type="button" class="btn btn-sm btn-light" id="nextMonth" title="Tháng sau">
+            <i class="bi bi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="calendar"></div>
+        <!-- Month/Year Selector Modal -->
+        <div id="monthSelector" class="position-absolute bg-white border rounded shadow p-3" style="display:none; z-index:1000; top:60px; right:20px; min-width:200px;">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Năm</label>
+            <div class="d-flex gap-2 mb-2">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="yearMinus">-</button>
+              <input type="number" id="yearInput" class="form-control form-control-sm text-center" min="2000" max="2100" style="flex:1;">
+              <button type="button" class="btn btn-sm btn-outline-secondary" id="yearPlus">+</button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Tháng</label>
+            <div class="d-grid" style="grid-template-columns: repeat(3, 1fr); gap:6px;">
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="0">T1/1</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="1">T2/2</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="2">T3/3</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="3">T4/4</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="4">T5/5</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="5">T6/6</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="6">T7/7</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="7">T8/8</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="8">T9/9</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="9">T10/10</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="10">T11/11</button>
+              <button type="button" class="btn btn-sm btn-outline-primary month-btn" data-month="11">T12/12</button>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-secondary flex-grow-1" id="cancelSelector">Đóng</button>
+            <button type="button" class="btn btn-sm btn-primary flex-grow-1" id="applySelector">Áp dụng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-success text-white">
+    <h5 class="mb-0"><i class="bi bi-list-check"></i> Danh sách công việc</h5>
+  </div>
+  
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs" id="todoTabs" role="tablist" style="padding: 1rem 1rem 0;">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+        <i class="bi bi-list-ul"></i> Tất cả
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="today-tab" data-bs-toggle="tab" data-bs-target="#today" type="button" role="tab">
+        <i class="bi bi-calendar-today"></i> Hôm nay
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="week-tab" data-bs-toggle="tab" data-bs-target="#week" type="button" role="tab">
+        <i class="bi bi-calendar-week"></i> Tuần này
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="month-tab" data-bs-toggle="tab" data-bs-target="#month" type="button" role="tab">
+        <i class="bi bi-calendar-month"></i> Tháng này
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="done-tab" data-bs-toggle="tab" data-bs-target="#done" type="button" role="tab">
+        <i class="bi bi-check-circle"></i> Đã hoàn thành
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+        <i class="bi bi-clock"></i> Chưa hoàn thành
+      </button>
+    </li>
+  </ul>
+
+  <!-- Month Selector -->
+  <div class="px-3 py-3 bg-light border-bottom" id="monthSelectorContainer">
+    <div class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label for="monthYearSelector" class="form-label mb-2"><i class="bi bi-calendar3"></i> Chọn tháng để xem:</label>
+        <input type="month" id="monthYearSelector" class="form-control" />
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-secondary" id="clearMonthFilterBtn">Xóa bộ lọc tháng</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="tab-content" id="todoTabContent">
+    {% if todos and todos|length > 0 %}
+      <div class="table-responsive" id="todoTableContainer">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th width="20%">Tiêu đề</th>
+              <th width="20%">Mô tả</th>
+              <th width="12%">Ngày</th>
+              <th width="12%">Giờ</th>
+              <th width="12%">Trạng thái</th>
+              <th width="24%">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="todoTableBody">
+          {% for t in todos %}
+            <tr class="todo-row" data-todo-id="{{ t.id }}" 
+                data-is-done="{{ 'true' if t.is_done else 'false' }}"
+                data-due-date="{{ t.due_date.isoformat() if t.due_date else '' }}">
+              <td>
+                <strong>{{ t.title }}</strong>
+              </td>
+              <td>
+                <small class="text-muted">{{ t.description or '—' }}</small>
+              </td>
+              <td>
+                {% if t.due_date %}
+                  <small class="text-success fw-bold">
+                    {{ t.due_date.strftime('%d/%m/%Y') }}
+                  </small>
+                {% else %}
+                  <small class="text-muted">—</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.due_date %}
+                  <small class="text-primary fw-bold">
+                    {{ t.due_date.strftime('%H:%M') }}
+                  </small>
+                {% else %}
+                  <small class="text-muted">—</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if t.is_done %}
+                  <span class="badge bg-success"><i class="bi bi-check-circle"></i> Hoàn thành</span>
+                {% else %}
+                  <span class="badge bg-warning"><i class="bi bi-clock"></i> Chưa</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not t.is_done %}
+                  <button type="button" class="btn btn-sm btn-success complete-btn" 
+                          data-todo-id="{{ t.id }}" title="Hoàn thành">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                {% endif %}
+                <button type="button" class="btn btn-sm btn-danger delete-btn" 
+                        data-todo-id="{{ t.id }}" title="Xóa">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle"></i> Bạn chưa có công việc nào. <a href="#title" class="alert-link">Hãy thêm một công việc mới!</a>
+      </div>
+    {% endif %}
+    </div><!-- Close tab-content -->
+  </div>
+</div>
+
+<!-- Date/Time Picker Modal -->
+<div id="pickerBackdrop"></div>
+<div id="dateTimePicker">
+  <div class="card border-0">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+      <h6 class="mb-0">Chọn ngày và giờ</h6>
+      <button type="button" class="btn-close btn-close-white" id="closePickerBtn" style="cursor:pointer;"></button>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Calendar Section -->
+        <div class="col-lg-8">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pickerPrevMonth">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <h6 class="mb-0" id="pickerMonthYear">Tháng 2 2026</h6>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="pickerNextMonth">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+          <div id="pickerCalendarGrid"></div>
+        </div>
+        
+        <!-- Time Section -->
+        <div class="col-lg-4 border-start ps-3">
+          <h6 class="mb-3">Giờ | Phút</h6>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Giờ</label>
+            <input type="number" id="pickerHour" class="form-control form-control-sm text-center" min="0" max="23" value="09" style="font-size:1.1rem; font-weight:600;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-bold">Phút</label>
+            <input type="number" id="pickerMinute" class="form-control form-control-sm text-center" min="0" max="59" value="00" style="font-size:1.1rem; font-weight:600;">
+          </div>
+          <div class="text-center p-2 bg-light rounded" id="pickerSelectedDate" style="font-size:0.9rem; font-weight:600;">
+            Chưa chọn
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 d-flex gap-2">
+        <button type="button" class="btn btn-secondary flex-grow-1" id="cancelPickerBtn">Hủy</button>
+        <button type="button" class="btn btn-primary flex-grow-1" id="applyPickerBtn">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Build todos array in JS from server template data
+  const todos = [
+    {% for t in todos %}
+      {
+        id: {{ t.id }},
+        title: {{ t.title|tojson }},
+        description: {{ (t.description or '')|tojson }},
+        is_done: {{ 'true' if t.is_done else 'false' }},
+        due_date: {{ t.due_date.isoformat()|tojson if t.due_date else 'null' }}
+      }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+</script>
+
+<!-- Load separate JavaScript modules in correct order -->
+<!-- 1. Core filtering functions (required by others) -->
+<script src="{{ url_for('static', path='js/filter.js') }}"></script>
+
+<!-- 2. Calendar display and navigation -->
+<script src="{{ url_for('static', path='js/calendar.js') }}"></script>
+
+<!-- 3. Date/time picker modal -->
+<script src="{{ url_for('static', path='js/datepicker.js') }}"></script>
+
+<!-- 4. Month filter selector -->
+<script src="{{ url_for('static', path='js/monthFilter.js') }}"></script>
+
+<!-- 5. Task CRUD operations (add, complete, delete) -->
+<script src="{{ url_for('static', path='js/tasks.js') }}"></script>
+
+<!-- 6. Client-side reminders -->
+<script src="{{ url_for('static', path='js/reminders.js') }}"></script>
+{% endblock %}

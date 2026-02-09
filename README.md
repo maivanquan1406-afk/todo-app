@@ -61,7 +61,7 @@ A comprehensive **8-level** Todo List API built with FastAPI, SQLModel, and JWT 
 
 3. **Run server:**
    ```bash
-   uvicorn app.main:app --reload --port 8000
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
    ```
 
 4. **Run tests:**
@@ -70,7 +70,7 @@ A comprehensive **8-level** Todo List API built with FastAPI, SQLModel, and JWT 
    ```
 
 ## Key Endpoints
-
+http://127.0.0.1:8000/api/v1/auth/login-page
 **Authentication:**
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`

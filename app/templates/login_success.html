@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Đăng nhập thành công{% endblock %}
+{% block header %}Đăng nhập thành công{% endblock %}
+{% block content %}
+  <p>Đăng nhập thành công. Token của bạn:</p>
+  <pre>{{ token }}</pre>
+  <p>Sử dụng token này trong header `Authorization: Bearer &lt;token&gt;` khi gọi API.</p>
+{% endblock %}
