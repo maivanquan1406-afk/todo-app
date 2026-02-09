@@ -4,3 +4,10 @@ sqlmodel
 pydantic-settings
 python-dotenv
 alembic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pytest
+pytest-asyncio
+httpx
+

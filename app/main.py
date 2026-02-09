@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from app.routers import todos
+from app.routers import todos, auth
 from app.db import init_db
 from app.core.config import settings
 
 app = FastAPI(title=settings.APP_NAME)
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(todos.router, prefix="/api/v1/todos")
 
 @app.on_event("startup")
@@ -17,3 +18,4 @@ def health():
 @app.get("/")
 def root():
     return {"message": f"Welcome to {settings.APP_NAME}"}
+

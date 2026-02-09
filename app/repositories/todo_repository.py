@@ -1,4 +1,5 @@
 from typing import Optional, List, Tuple
+from datetime import datetime, date
 from sqlmodel import select
 from app.models import Todo
 from app.db import get_session
@@ -14,14 +15,13 @@ class TodoRepository:
         session.refresh(todo)
         return todo
 
-    def get(self, todo_id: int) -> Optional[Todo]:
+    def get(self, todo_id: int, owner_id: int) -> Optional[Todo]:
         session = get_session()
-        result = session.get(Todo, todo_id)
-        return result
+        stmt = select(Todo).where((Todo.id == todo_id) & (Todo.owner_id == owner_id))
+        return session.exec(stmt).first()
 
     def delete(self, todo: Todo) -> None:
         session = get_session()
-        # Refetch from DB to avoid session attachment issues
         db_todo = session.get(Todo, todo.id)
         if db_todo:
             session.delete(db_todo)
@@ -29,7 +29,6 @@ class TodoRepository:
 
     def update(self, todo: Todo) -> Todo:
         session = get_session()
-        # Refetch from DB to avoid session attachment issues
         db_todo = session.get(Todo, todo.id)
         if db_todo:
             if todo.title is not None:
@@ -38,15 +37,19 @@ class TodoRepository:
                 db_todo.description = todo.description
             if todo.is_done is not None:
                 db_todo.is_done = todo.is_done
+            if todo.due_date is not None:
+                db_todo.due_date = todo.due_date
+            if todo.tags is not None:
+                db_todo.tags = todo.tags
             db_todo.updated_at = todo.updated_at
             session.commit()
             session.refresh(db_todo)
             return db_todo
         return None
 
-    def list(self, *, limit: int = 10, offset: int = 0, q: Optional[str] = None, is_done: Optional[bool] = None, sort: Optional[str] = None) -> Tuple[List[Todo], int]:
+    def list(self, owner_id: int, *, limit: int = 10, offset: int = 0, q: Optional[str] = None, is_done: Optional[bool] = None, sort: Optional[str] = None) -> Tuple[List[Todo], int]:
         session = get_session()
-        stmt = select(Todo)
+        stmt = select(Todo).where(Todo.owner_id == owner_id)
         if q:
             stmt = stmt.where(Todo.title.contains(q))
         if is_done is not None:
@@ -60,7 +63,7 @@ class TodoRepository:
                 if sort == "created_at":
                     stmt = stmt.order_by(Todo.created_at)
         
-        count_stmt = select(Todo)
+        count_stmt = select(Todo).where(Todo.owner_id == owner_id)
         if q:
             count_stmt = count_stmt.where(Todo.title.contains(q))
         if is_done is not None:
@@ -72,3 +75,26 @@ class TodoRepository:
         stmt = stmt.offset(offset).limit(limit)
         results = session.exec(stmt).all()
         return results, count
+    def get_overdue(self, owner_id: int) -> List[Todo]:
+        """Get incomplete todo items with due_date in the past"""
+        session = get_session()
+        now = datetime.utcnow()
+        stmt = select(Todo).where(
+            (Todo.owner_id == owner_id) &
+            (Todo.due_date < now) &
+            (Todo.is_done == False)
+        )
+        return session.exec(stmt).all()
+
+    def get_today(self, owner_id: int) -> List[Todo]:
+        """Get incomplete todo items with due_date today"""
+        session = get_session()
+        today_start = datetime.combine(date.today(), datetime.min.time())
+        today_end = datetime.combine(date.today(), datetime.max.time())
+        stmt = select(Todo).where(
+            (Todo.owner_id == owner_id) &
+            (Todo.due_date >= today_start) &
+            (Todo.due_date <= today_end) &
+            (Todo.is_done == False)
+        )
+        return session.exec(stmt).all()
