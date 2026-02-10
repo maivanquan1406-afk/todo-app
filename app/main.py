@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import todos, auth
 from app.db import init_db
 from app.core.config import settings
@@ -13,13 +14,22 @@ from starlette.responses import RedirectResponse as StarletteRedirect
 from app.models import TodoCreate
 from datetime import datetime
 
-app = FastAPI(title=settings.APP_NAME)
+app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+
+# Add CORS middleware for Railway and other deployments
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, restrict to your domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Initialize database on startup
 @app.on_event("startup")
 def startup_event():
     init_db()
-    print("Database initialized successfully")
+    print(f"Database initialized successfully (Environment: {settings.ENVIRONMENT})")
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(todos.router, prefix="/api/v1/todos")

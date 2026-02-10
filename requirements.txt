@@ -8,6 +8,7 @@ alembic
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
+psycopg2-binary
 pytest
 pytest-asyncio
 httpx
