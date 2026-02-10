@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import RedirectResponse
 
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 from app.routers import todos, auth
 from app.db import init_db
@@ -16,29 +17,33 @@ from app.services.todo_service import service as todo_service
 from app.models import TodoCreate
 
 
+# =======================
+# Lifespan (startup/shutdown)
+# =======================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    print(f"✅ Database initialized (ENV={settings.ENVIRONMENT})")
+    yield
+    print("🛑 Application shutdown")
+
+
 app = FastAPI(
     title=settings.APP_NAME,
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    lifespan=lifespan
 )
 
 # =======================
-# CORS (Railway compatible)
+# CORS
 # =======================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # production có thể giới hạn domain
+    allow_origins=["*"],  # production nên giới hạn domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# =======================
-# Startup
-# =======================
-@app.on_event("startup")
-def startup_event():
-    init_db()
-    print(f"Database initialized (ENV={settings.ENVIRONMENT})")
 
 # =======================
 # Routers (API)
@@ -59,15 +64,15 @@ templates = Jinja2Templates(directory="app/templates")
 def dashboard(request: Request):
     token = request.cookies.get("access_token")
     if not token:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     email = decode_token(token)
     if not email:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     user = user_service.get_by_email(email)
     if not user:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     todos_list, _ = todo_service.list(user.id, limit=100, offset=0)
 
@@ -89,20 +94,17 @@ def dashboard_create_todo(
     due_date: str = Form(None)
 ):
     token = request.cookies.get("access_token")
-    if not token:
-        return RedirectResponse("/api/v1/auth/login-page")
-
-    email = decode_token(token)
+    email = decode_token(token) if token else None
     user = user_service.get_by_email(email) if email else None
     if not user:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     due = None
     if due_date:
         try:
             due = datetime.fromisoformat(due_date)
         except ValueError:
-            due = None
+            pass
 
     todo_service.create(
         data=TodoCreate(
@@ -122,7 +124,7 @@ def dashboard_complete(todo_id: int, request: Request):
     email = decode_token(token) if token else None
     user = user_service.get_by_email(email) if email else None
     if not user:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     todo_service.mark_complete(todo_id, user.id)
     return RedirectResponse("/dashboard", status_code=303)
@@ -134,10 +136,11 @@ def dashboard_delete(todo_id: int, request: Request):
     email = decode_token(token) if token else None
     user = user_service.get_by_email(email) if email else None
     if not user:
-        return RedirectResponse("/api/v1/auth/login-page")
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
     todo_service.delete(todo_id, user.id)
     return RedirectResponse("/dashboard", status_code=303)
+
 
 # =======================
 # System endpoints
@@ -145,6 +148,7 @@ def dashboard_delete(todo_id: int, request: Request):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.get("/")
 def root():
