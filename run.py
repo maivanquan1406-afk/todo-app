@@ -8,8 +8,8 @@ import sys
 import subprocess
 
 def main():
-    # Get PORT from environment, default to 8080 for Railway
-    port = os.getenv("PORT", "8080")
+    # Get PORT from Railway environment, default to 8000
+    port = os.getenv("PORT", "8000")
     
     # Validate port is a number
     try:
