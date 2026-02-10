@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseSettings):
     APP_NAME: str = "ToDo App"
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
     DEBUG: bool = ENVIRONMENT == "development"
     
     # Database - Railway provides DATABASE_URL with PostgreSQL
