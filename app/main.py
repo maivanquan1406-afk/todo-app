@@ -22,8 +22,16 @@ from app.models import TodoCreate
 # =======================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
-    print(f"✅ Database initialized (ENV={settings.ENVIRONMENT})")
+    print("=" * 50)
+    print("🚀 Application Starting...")
+    try:
+        init_db()
+        print(f"✅ Database initialized (ENV={settings.ENVIRONMENT})")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+        import traceback
+        traceback.print_exc()
+    print("=" * 50)
     yield
     print("🛑 Application shutdown")
 
@@ -33,6 +41,19 @@ app = FastAPI(
     debug=settings.DEBUG,
     lifespan=lifespan
 )
+
+# Simple health check before any middleware
+@app.get("/health", response_class=HTMLResponse)
+def health():
+    return "<h1>OK</h1>"
+
+@app.get("/", response_class=HTMLResponse)
+def root():
+    return f"""
+    <h1>{settings.APP_NAME}</h1>
+    <p>Status: OK</p>
+    <p>Environment: {settings.ENVIRONMENT}</p>
+    """
 
 # =======================
 # CORS
@@ -140,19 +161,3 @@ def dashboard_delete(todo_id: int, request: Request):
 
     todo_service.delete(todo_id, user.id)
     return RedirectResponse("/dashboard", status_code=303)
-
-
-# =======================
-# System endpoints
-# =======================
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.get("/")
-def root():
-    return {
-        "status": "ok",
-        "app": settings.APP_NAME
-    }
