@@ -1,4 +1,5 @@
 {
   "builder": "nixpacks",
-  "nixpacksPythonVersion": "3.10"
+  "nixpacksPythonVersion": "3.10",
+  "startCommand": "python run.py"
 }
