@@ -122,3 +122,7 @@ def health():
 def root():
     return {"message": f"Welcome to {settings.APP_NAME}"}
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
