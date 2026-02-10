@@ -1,5 +1,5 @@
 {
   "builder": "nixpacks",
   "nixpacksPythonVersion": "3.10",
-  "startCommand": "python run.py"
+  "startCommand": "PORT=8080 python run.py"
 }
