@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 import uuid
 
@@ -191,7 +191,7 @@ def test_list_todos_isolation(
 
 def test_todo_with_due_date(client: TestClient, user_a_token: str):
     """Test creating todo with due_date"""
-    due_date = (datetime.utcnow() + timedelta(days=7)).isoformat()
+    due_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
     response = client.post(
         "/api/v1/todos/",
         json={
@@ -209,7 +209,7 @@ def test_todo_with_due_date(client: TestClient, user_a_token: str):
 
 def test_overdue_endpoint(client: TestClient, user_a_token: str):
     """Test overdue todos endpoint"""
-    past_date = (datetime.utcnow() - timedelta(days=1)).isoformat()
+    past_date = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     client.post(
         "/api/v1/todos/",
         json={"title": "Overdue Task", "due_date": past_date},
@@ -226,7 +226,7 @@ def test_overdue_endpoint(client: TestClient, user_a_token: str):
 
 def test_today_endpoint(client: TestClient, user_a_token: str):
     """Test today's todos endpoint"""
-    today_date = datetime.utcnow().isoformat()
+    today_date = datetime.now(timezone.utc).isoformat()
     client.post(
         "/api/v1/todos/",
         json={"title": "Today Task", "due_date": today_date},
@@ -398,7 +398,7 @@ def test_list_todos_isolation(
 
 def test_todo_with_due_date(client: TestClient, user_a_token: str):
     """Test creating todo with due_date"""
-    due_date = (datetime.utcnow() + timedelta(days=7)).isoformat()
+    due_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
     response = client.post(
         "/api/v1/todos/",
         json={
@@ -416,7 +416,7 @@ def test_todo_with_due_date(client: TestClient, user_a_token: str):
 
 def test_overdue_endpoint(client: TestClient, user_a_token: str):
     """Test overdue todos endpoint"""
-    past_date = (datetime.utcnow() - timedelta(days=1)).isoformat()
+    past_date = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     client.post(
         "/api/v1/todos/",
         json={"title": "Overdue Task", "due_date": past_date},
@@ -433,7 +433,7 @@ def test_overdue_endpoint(client: TestClient, user_a_token: str):
 
 def test_today_endpoint(client: TestClient, user_a_token: str):
     """Test today's todos endpoint"""
-    today_date = datetime.utcnow().isoformat()
+    today_date = datetime.now(timezone.utc).isoformat()
     client.post(
         "/api/v1/todos/",
         json={"title": "Today Task", "due_date": today_date},

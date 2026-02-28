@@ -5,7 +5,8 @@ Supports both gunicorn and uvicorn with auto PORT detection
 """
 import os
 import sys
-import subprocess
+
+from app.core.config import logger
 
 def main():
     # Get PORT from Railway environment, default to 8000
@@ -15,7 +16,7 @@ def main():
     try:
         port_int = int(port)
     except ValueError:
-        print(f"Error: PORT '{port}' is not a valid port number")
+        logger.error("PORT '%s' is not a valid port number", port)
         sys.exit(1)
     
     # Get number of workers (default 1 for Railway free tier to save RAM)
@@ -25,7 +26,7 @@ def main():
     cmd = [
         "gunicorn",
         "--workers", str(workers),
-        "--worker-class", "sync",
+        "--worker-class", "uvicorn.workers.UvicornWorker",
         "--bind", f"0.0.0.0:{port_int}",
         "--timeout", "120",
         "--max-requests", "1000",
@@ -35,9 +36,11 @@ def main():
         "app.main:app"
     ]
     
-    print(f"✅ Starting application on 0.0.0.0:{port_int} with {workers} workers...")
-    print(f"📦 Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    print(f"🗄️  Database: {os.getenv('DATABASE_URL', 'sqlite')[:30]}...")
+    env_name = os.getenv('ENVIRONMENT', 'development')
+    db_url = os.getenv('DATABASE_URL', 'sqlite')
+    logger.info("Starting application on 0.0.0.0:%s with %s workers", port_int, workers)
+    logger.info("Environment: %s", env_name)
+    logger.info("Database: %s...", db_url[:30])
     
     # Execute gunicorn
     os.execvp("gunicorn", cmd)

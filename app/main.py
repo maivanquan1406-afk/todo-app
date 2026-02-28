@@ -8,13 +8,14 @@ from starlette.responses import RedirectResponse
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from app.routers import todos, auth
+from app.routers import todos, auth, admin
 from app.db import init_db
-from app.core.config import settings
+from app.core.config import settings, logger
 from app.core.jwt import decode_token
 from app.services.user_service import service as user_service
 from app.services.todo_service import service as todo_service
 from app.models import TodoCreate
+from app.core.exceptions import AppError
 
 
 # =======================
@@ -22,18 +23,14 @@ from app.models import TodoCreate
 # =======================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("=" * 50)
-    print("🚀 Application Starting...")
+    logger.info("Application starting")
     try:
         init_db()
-        print(f"✅ Database initialized (ENV={settings.ENVIRONMENT})")
-    except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
-        import traceback
-        traceback.print_exc()
-    print("=" * 50)
+        logger.info("Database initialized (env=%s)", settings.ENVIRONMENT)
+    except Exception:
+        logger.exception("Database initialization failed")
     yield
-    print("🛑 Application shutdown")
+    logger.info("Application shutdown")
 
 
 app = FastAPI(
@@ -71,6 +68,7 @@ app.add_middleware(
 # =======================
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(todos.router, prefix="/api/v1/todos", tags=["todos"])
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 # =======================
 # Static & Templates
@@ -91,11 +89,20 @@ def dashboard(request: Request):
     if not email:
         return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
-    user = user_service.get_by_email(email)
+    try:
+        user = user_service.get_by_email(email)
+    except AppError as exc:
+        logger.error("Dashboard user fetch failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
+
     if not user:
         return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
-    todos_list, _ = todo_service.list(user.id, limit=100, offset=0)
+    try:
+        todos_list, _ = todo_service.list(user.id, limit=100, offset=0)
+    except AppError as exc:
+        logger.error("Dashboard todo list failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -116,7 +123,11 @@ def dashboard_create_todo(
 ):
     token = request.cookies.get("access_token")
     email = decode_token(token) if token else None
-    user = user_service.get_by_email(email) if email else None
+    try:
+        user = user_service.get_by_email(email) if email else None
+    except AppError as exc:
+        logger.error("Dashboard create fetch user failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
     if not user:
         return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
@@ -127,14 +138,18 @@ def dashboard_create_todo(
         except ValueError:
             pass
 
-    todo_service.create(
-        data=TodoCreate(
-            title=title,
-            description=description,
-            due_date=due
-        ),
-        owner_id=user.id
-    )
+    try:
+        todo_service.create(
+            data=TodoCreate(
+                title=title,
+                description=description,
+                due_date=due
+            ),
+            owner_id=user.id
+        )
+    except AppError as exc:
+        logger.error("Dashboard create todo failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
 
     return RedirectResponse("/dashboard", status_code=303)
 
@@ -143,11 +158,19 @@ def dashboard_create_todo(
 def dashboard_complete(todo_id: int, request: Request):
     token = request.cookies.get("access_token")
     email = decode_token(token) if token else None
-    user = user_service.get_by_email(email) if email else None
+    try:
+        user = user_service.get_by_email(email) if email else None
+    except AppError as exc:
+        logger.error("Dashboard complete fetch user failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
     if not user:
         return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
-    todo_service.mark_complete(todo_id, user.id)
+    try:
+        todo_service.mark_complete(todo_id, user.id)
+    except AppError as exc:
+        logger.error("Dashboard mark complete failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
     return RedirectResponse("/dashboard", status_code=303)
 
 
@@ -155,9 +178,17 @@ def dashboard_complete(todo_id: int, request: Request):
 def dashboard_delete(todo_id: int, request: Request):
     token = request.cookies.get("access_token")
     email = decode_token(token) if token else None
-    user = user_service.get_by_email(email) if email else None
+    try:
+        user = user_service.get_by_email(email) if email else None
+    except AppError as exc:
+        logger.error("Dashboard delete fetch user failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
     if not user:
         return RedirectResponse("/api/v1/auth/login-page", status_code=302)
 
-    todo_service.delete(todo_id, user.id)
+    try:
+        todo_service.delete(todo_id, user.id)
+    except AppError as exc:
+        logger.error("Dashboard delete todo failed", exc_info=True)
+        return HTMLResponse("Internal server error", status_code=500)
     return RedirectResponse("/dashboard", status_code=303)

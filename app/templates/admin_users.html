@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Quản lý người dùng{% endblock %}
+{% block header %}Quản trị người dùng{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">Chỉ admin mới có thể truy cập trang này.</p>
+  <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+  </a>
+</div>
+
+{% if status_message %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+  {{ status_message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+{% if error_message %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  {{ error_message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-people"></i> Danh sách người dùng</h5>
+    <span class="badge bg-light text-dark">Tổng: {{ users|length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Vai trò</th>
+            <th>Ngày tạo</th>
+            <th class="text-end">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if users %}
+            {% for user_item in users %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ user_item.email }}</td>
+              <td>
+                {% if user_item.role == 'admin' %}
+                  <span class="badge bg-primary">Admin</span>
+                {% else %}
+                  <span class="badge bg-secondary">User</span>
+                {% endif %}
+              </td>
+              <td>{{ user_item.created_at.strftime('%d/%m/%Y %H:%M') if user_item.created_at else '-' }}</td>
+              <td class="text-end">
+                {% if user_item.id == current_user.id %}
+                  <span class="text-muted small">(Bạn)</span>
+                {% else %}
+                  <form method="post" action="/admin/users/{{ user_item.id }}/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">Chưa có người dùng nào.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
