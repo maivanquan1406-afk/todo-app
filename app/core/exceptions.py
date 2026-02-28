@@ -45,3 +45,10 @@ class AuthenticationError(AppError):
 
     def __init__(self, message: str = "Authentication failed"):
         super().__init__(message, code="authentication_error")
+
+
+class EmailError(AppError):
+    """Raised when outbound email sending fails."""
+
+    def __init__(self, message: str = "Email delivery failed"):
+        super().__init__(message, code="email_error")

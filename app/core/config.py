@@ -17,6 +17,7 @@ logger = logging.getLogger("todoapp")
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
     APP_NAME: str = "ToDo App"
+    APP_DOMAIN: str = os.getenv("APP_DOMAIN", "http://localhost:8000")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production")
     DEBUG: bool = ENVIRONMENT == "development"
     
@@ -28,6 +29,12 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    
+    # SMTP / Email
+    SMTP_HOST: str | None = os.getenv("SMTP_HOST")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str | None = os.getenv("SMTP_USER")
+    SMTP_PASSWORD: str | None = os.getenv("SMTP_PASSWORD")
     
     # CORS & Hosts
     ALLOWED_HOSTS: list = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")

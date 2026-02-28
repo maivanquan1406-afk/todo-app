@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 from datetime import datetime
 from contextlib import asynccontextmanager
 
-from app.routers import todos, auth, admin
+from app.routers import todos, auth, admin, password_reset_router
 from app.db import init_db
 from app.core.config import settings, logger
 from app.core.jwt import decode_token
@@ -67,6 +67,7 @@ app.add_middleware(
 # Routers (API)
 # =======================
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(password_reset_router.router, prefix="/api/v1")
 app.include_router(todos.router, prefix="/api/v1/todos", tags=["todos"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 

@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy import inspect, text
 
 from app.core.config import settings
+from app.models.password_reset import PasswordResetToken  # noqa: F401
 
 engine = create_engine(settings.DATABASE_URL, echo=False)
 

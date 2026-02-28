@@ -3,24 +3,32 @@ from typing import Optional
 from jose import JWTError, jwt
 import hashlib
 import secrets
+from passlib.context import CryptContext
+from passlib.exc import UnknownHashError
+
+from app.core.config import settings
 
 # Configuration
-SECRET_KEY = "your-secret-key-change-in-production"
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    """Simple PBKDF2 hash"""
-    salt = secrets.token_hex(16)
-    hashed = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
-    return f"{salt}${hashed.hex()}"
+    return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except (ValueError, UnknownHashError):
+        return _verify_legacy_password(plain_password, hashed_password)
+
+def _verify_legacy_password(plain_password: str, hashed_password: str) -> bool:
     try:
         salt, hashed = hashed_password.split('$')
         expected = hashlib.pbkdf2_hmac('sha256', plain_password.encode(), salt.encode(), 100000)
         return expected.hex() == hashed
-    except:
+    except Exception:
         return False
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
