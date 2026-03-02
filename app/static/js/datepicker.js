@@ -19,6 +19,7 @@ function renderPickerCalendar() {
   cal.innerHTML = '';
   const first = new Date(pickerYear, pickerMonth, 1);
   const startDay = first.getDay();
+  const adjustedStartDay = (startDay + 6) % 7; // chuyển sang tuần bắt đầu từ Thứ 2
   const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
 
   const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
@@ -32,7 +33,7 @@ function renderPickerCalendar() {
   daysHeader.className = 'd-grid mb-2';
   daysHeader.style.gridTemplateColumns = 'repeat(7, 1fr)';
   daysHeader.style.gap = '4px';
-  const dayNames = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
+  const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
   dayNames.forEach(day => {
     const d = document.createElement('div');
     d.className = 'text-center text-muted fw-bold small';
@@ -48,7 +49,7 @@ function renderPickerCalendar() {
   grid.style.gap = '4px';
 
   // Empty slots for days before month starts
-  for (let i = 0; i < startDay; i++) {
+  for (let i = 0; i < adjustedStartDay; i++) {
     const e = document.createElement('div');
     grid.appendChild(e);
   }
@@ -79,6 +80,7 @@ function renderPickerCalendar() {
       document.querySelectorAll('.picker-day').forEach(c => {
         c.style.backgroundColor = '';
         c.style.borderColor = '';
+        c.style.color = '';
       });
 
       // Select new day

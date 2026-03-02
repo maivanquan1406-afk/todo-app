@@ -5,7 +5,6 @@
 
 let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
-let selectedCalendarDate = null;
 
 /**
  * Update month/year display text
@@ -31,7 +30,9 @@ function renderCalendar(year, month) {
   cal.innerHTML = '';
   const first = new Date(year, month, 1);
   const startDay = first.getDay();
+  const adjustedStartDay = (startDay + 6) % 7; // chuyển sang tuần bắt đầu từ Thứ 2
   const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = new Date();
 
   const monthNames = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6',
                       'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
@@ -42,106 +43,93 @@ function renderCalendar(year, month) {
   cal.appendChild(header);
 
   const daysHeader = document.createElement('div');
-  daysHeader.className = 'd-grid mb-2';
-  daysHeader.style.gridTemplateColumns = 'repeat(7, 1fr)';
-  const dayNames = ['CN', 'Th 2', 'Th 3', 'Th 4', 'Th 5', 'Th 6', 'Th 7'];
+  daysHeader.className = 'calendar-weekday-row';
+  const dayNames = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
   dayNames.forEach(day => {
     const d = document.createElement('div');
-    d.className = 'text-center text-muted fw-bold small';
+    d.className = 'calendar-weekday text-center';
     d.innerText = day;
     daysHeader.appendChild(d);
   });
   cal.appendChild(daysHeader);
 
   const grid = document.createElement('div');
-  grid.className = 'd-grid';
-  grid.style.gridTemplateColumns = 'repeat(7, 1fr)';
-  grid.style.gap = '6px';
+  grid.className = 'calendar-grid';
 
   // Empty slots before month starts
-  for (let i = 0; i < startDay; i++) {
-    const e = document.createElement('div');
-    grid.appendChild(e);
+  for (let i = 0; i < adjustedStartDay; i++) {
+    const placeholder = document.createElement('div');
+    placeholder.className = 'calendar-day-card calendar-day-placeholder';
+    placeholder.setAttribute('aria-hidden', 'true');
+    grid.appendChild(placeholder);
   }
 
   for (let d = 1; d <= daysInMonth; d++) {
     const cell = document.createElement('div');
-    cell.className = 'calendar-day p-2 border rounded text-center';
-    cell.style.minHeight = '80px';
-    cell.style.cursor = 'pointer';
-    cell.style.transition = 'all 0.3s ease';
+    cell.className = 'calendar-day-card';
+    cell.tabIndex = 0;
 
     const dateStr = `${year}-${(month+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
-    const dayTitle = document.createElement('div');
-    dayTitle.className = 'fw-bold mb-2';
-    dayTitle.innerText = d;
-    cell.appendChild(dayTitle);
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+
+    const headerRow = document.createElement('div');
+    headerRow.className = 'calendar-day-header';
+
+    const dayNumber = document.createElement('div');
+    dayNumber.className = 'calendar-day-number';
+    dayNumber.innerText = d.toString();
+    headerRow.appendChild(dayNumber);
+
+    cell.appendChild(headerRow);
+
+    if (isToday) {
+      cell.classList.add('calendar-day-current');
+      const todayChip = document.createElement('span');
+      todayChip.className = 'calendar-day-chip';
+      todayChip.innerText = 'Hôm nay';
+      cell.appendChild(todayChip);
+    }
 
     const items = todos.filter(t => t.due_date && t.due_date.startsWith(dateStr));
     if (items.length) {
-      const badge = document.createElement('span');
-      badge.className = 'badge bg-primary';
-      badge.innerText = items.length + ' công việc';
-      cell.appendChild(badge);
-      cell.style.backgroundColor = '#e7f3ff';
+      cell.classList.add('calendar-day-has-tasks');
     }
 
-    cell.addEventListener('mouseover', () => {
-      cell.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
-      cell.style.borderColor = '#0d6efd';
-    });
+    const body = document.createElement('div');
+    body.className = 'calendar-day-body';
 
-    cell.addEventListener('mouseout', () => {
-      cell.style.boxShadow = 'none';
-      cell.style.borderColor = '';
-    });
+    const count = document.createElement('div');
+    count.className = 'calendar-day-count';
+    count.innerText = items.length ? items.length.toString() : '0';
+    if (items.length) {
+      count.classList.add('calendar-day-count-active');
+    }
+    body.appendChild(count);
+
+    cell.appendChild(body);
+
+    const targetUrl = `/dashboard/day/${dateStr}`;
+    cell.dataset.href = targetUrl;
+
+    const stretchedLink = document.createElement('a');
+    stretchedLink.href = targetUrl;
+    stretchedLink.className = 'stretched-link';
+    stretchedLink.setAttribute('aria-label', `Mở công việc ngày ${d}`);
+    stretchedLink.tabIndex = -1;
+    cell.appendChild(stretchedLink);
 
     cell.addEventListener('click', () => {
-      // Store the selected date
-      selectedCalendarDate = dateStr;
-      
-      // Clear all active states
-      document.querySelectorAll('.calendar-day').forEach(c => {
-        c.style.backgroundColor = '';
-        c.style.borderColor = '';
-        c.style.borderWidth = '';
-      });
-      
-      // Highlight selected cell
-      cell.style.backgroundColor = '#0d6efd';
-      cell.style.color = 'white';
-      cell.style.borderColor = '#0d6efd';
-      cell.style.borderWidth = '2px';
-      
-      // Filter todos for this date
-      const rows = document.querySelectorAll('.todo-row');
-      let hasItems = false;
-      rows.forEach(row => {
-        const dueDateStr = row.getAttribute('data-due-date');
-        if (dueDateStr && dueDateStr.startsWith(dateStr)) {
-          row.style.display = '';
-          hasItems = true;
-        } else {
-          row.style.display = 'none';
-        }
-      });
-      
-      // Scroll to task list
-      const taskCard = document.querySelector('.card-header.bg-success');
-      if (taskCard) {
-        taskCard.scrollIntoView({behavior:'smooth', block:'start'});
+      window.location.href = targetUrl;
+    });
+
+    cell.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        window.location.href = targetUrl;
       }
     });
 
     grid.appendChild(cell);
-    
-    // Highlight if this is the selected date
-    if (selectedCalendarDate && dateStr === selectedCalendarDate) {
-      cell.style.backgroundColor = '#0d6efd';
-      cell.style.color = 'white';
-      cell.style.borderColor = '#0d6efd';
-      cell.style.borderWidth = '2px';
-    }
   }
 
   cal.appendChild(grid);
@@ -245,3 +233,8 @@ if (document.readyState === 'loading') {
 } else {
   initCalendar();
 }
+
+window.addEventListener('todos:changed', () => {
+  renderCalendar(calendarYear, calendarMonth);
+  updateMonthYearDisplay();
+});

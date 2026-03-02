@@ -4,9 +4,8 @@ from typing import Optional
 from datetime import datetime, timezone
 
 from pydantic import EmailStr
+from sqlalchemy import Column, DateTime
 from sqlmodel import SQLModel, Field
-
-from .password_reset import PasswordResetToken  # noqa: F401
 
 
 class UserBase(SQLModel):
@@ -23,6 +22,10 @@ class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_password: str
     created_at: datetime = Field(default_factory=_utcnow)
+    otp_code: Optional[str] = Field(default=None, max_length=6)
+    otp_expire: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
+    otp_used: bool = Field(default=False)
+    deleted_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True)))
 
 
 class UserCreate(SQLModel):
@@ -54,6 +57,10 @@ class Todo(TodoBase, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)
     deleted_at: Optional[datetime] = None
+    reminder_sent_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True))
+    )
 
 
 class TodoCreate(SQLModel):

@@ -4,7 +4,7 @@ from sqlmodel import Session, create_engine, SQLModel
 from sqlmodel.pool import StaticPool
 
 from app.main import app
-from app.db import get_session
+from app.db import get_session, set_session_override
 
 
 @pytest.fixture(scope="function")
@@ -19,10 +19,12 @@ def session():
     # Create all tables fresh for each test
     SQLModel.metadata.create_all(engine)
     
-    with Session(engine) as session:
-        yield session
-    
+    with Session(engine) as session_instance:
+        set_session_override(lambda: session_instance)
+        yield session_instance
+
     # Clean up after test
+    set_session_override(None)
     SQLModel.metadata.drop_all(engine)
 
 

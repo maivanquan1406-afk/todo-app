@@ -1,32 +1,321 @@
 {% extends 'base.html' %}
 {% block title %}Quản lý người dùng{% endblock %}
-{% block header %}Quản trị người dùng{% endblock %}
+{% block header %}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <p class="text-muted mb-0">Chỉ admin mới có thể truy cập trang này.</p>
-  <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
-    <i class="bi bi-arrow-left"></i> Quay lại Dashboard
-  </a>
+<div class="admin-grid">
+  <div class="admin-shell">
+    <div class="admin-hero border-0 shadow-sm mb-4">
+      <div class="admin-hero-content">
+        <div>
+          <p class="text-white-50 small mb-2">Trang điều khiển dành riêng cho admin</p>
+          <h2 class="text-white mb-1">Quản trị người dùng</h2>
+          <p class="text-white-50 small mb-0">Theo dõi hoạt động và khôi phục tài khoản trong một bảng điều khiển duy nhất.</p>
+        </div>
+        <a href="/dashboard" class="btn btn-light text-primary px-4">
+          <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+        </a>
+      </div>
+      <div class="admin-hero-stats">
+        <div class="stat-card">
+          <span class="label">Đang hoạt động</span>
+          <span class="value" id="activeCount">{{ users|length }}</span>
+          <small>Người dùng còn hiệu lực</small>
+        </div>
+        <div class="stat-card">
+          <span class="label">Trong thùng rác</span>
+          <span class="value" id="deletedCount">{{ deleted_users|length }}</span>
+          <small>Có thể khôi phục</small>
+        </div>
+        <div class="stat-card">
+          <span class="label">Tổng tài khoản</span>
+          <span class="value" id="totalCount">{{ (users|length) + (deleted_users|length) }}</span>
+          <small>Cả đang hoạt động & đã xóa</small>
+        </div>
+      </div>
+    </div>
+
+    {% if status_message %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ status_message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    {% if error_message %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ error_message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <div class="admin-quick-actions d-flex align-items-center gap-3 mb-4">
+      <button class="btn btn-dark rounded-circle" type="button" id="adminMenuToggle" aria-controls="adminQuickMenu" aria-expanded="false" title="Mở menu điều khiển">
+        <i class="bi bi-list fs-4"></i>
+      </button>
+      <div>
+        <p class="mb-0 fw-semibold">Menu điều khiển nhanh</p>
+        <small class="text-muted">Chọn khu vực cần xem trong nháy mắt.</small>
+      </div>
+    </div>
+
+    <style>
+.admin-grid {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 1rem 2rem 5rem;
+}
+.admin-shell {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 36px;
+  padding: 3rem;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+.admin-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 10% 20%, rgba(124,77,255,0.15), transparent 45%),
+              radial-gradient(circle at 90% 10%, rgba(79,70,229,0.12), transparent 40%);
+  z-index: 0;
+}
+.admin-shell > * {
+  position: relative;
+  z-index: 1;
+}
+.admin-hero {
+  background: linear-gradient(120deg, #5b5ce7, #7c4dff, #9f5bff);
+  border-radius: 24px;
+  padding: 2rem;
+  color: #fff;
+}
+.admin-hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+@media (min-width: 992px) {
+  .admin-hero-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.admin-hero-stats {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.stat-card {
+  background: rgba(255,255,255,0.15);
+  border-radius: 18px;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.stat-card .label {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.stat-card .value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
+.admin-form-card,
+.admin-section {
+  border-radius: 20px;
+}
+.admin-form-card {
+  height: 100%;
+}
+.admin-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+.filter-summary {
+  background: #f8f9ff;
+  border-radius: 16px;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.95rem;
+  color: #4b5563;
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+.filter-summary strong {
+  color: #4338ca;
+  margin: 0 0.35rem;
+}
+.filter-summary .summary-count {
+  font-weight: 600;
+  color: #1f2937;
+  margin-left: 0.4rem;
+}
+.filter-detail-list {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 1.1rem 1.3rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+}
+.filter-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  color: #1f2937;
+}
+.filter-detail-items {
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+}
+.filter-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+}
+.filter-detail-item:first-child {
+  border-top: none;
+}
+.admin-table-stack > .card {
+  margin-bottom: 2rem;
+}
+.admin-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1030;
+  display: none;
+}
+.admin-menu-overlay.show {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+.admin-menu-drawer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: min(420px, 90vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 25px 80px rgba(15, 23, 42, 0.25);
+  padding: 2rem 1.5rem;
+  transform: translate(-50%, -40%) scale(0.9);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+  z-index: 1040;
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+}
+.admin-menu-drawer.show {
+  display: flex;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+.admin-section {
+  display: none;
+}
+.admin-section.show {
+  display: block;
+}
+.admin-menu-close {
+  align-self: flex-end;
+}
+</style>
+
+<div id="adminMenuOverlay" class="admin-menu-overlay" aria-hidden="true"></div>
+<div id="adminQuickMenu" class="admin-menu-drawer" aria-hidden="true">
+  <button type="button" class="btn btn-sm btn-outline-secondary admin-menu-close" aria-label="Đóng menu">&times;</button>
+  <h5 class="mb-0">Menu điều khiển</h5>
+  <p class="text-muted small">Chọn hành động bạn muốn thực hiện.</p>
+  <button type="button" class="btn btn-outline-primary admin-menu-action" data-section-target="activeUsersSection">
+    <i class="bi bi-people"></i> Danh sách người dùng
+  </button>
+  <button type="button" class="btn btn-outline-success admin-menu-action" data-section-target="deletedUsersSection">
+    <i class="bi bi-arrow-counterclockwise"></i> Khôi phục tài khoản
+  </button>
 </div>
 
-{% if status_message %}
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-  {{ status_message }}
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-{% endif %}
+    <div class="admin-panels">
+      <form class="card admin-form-card border-0 shadow-sm" method="get" action="/admin/users">
+  <div class="card-body row g-3 align-items-end">
+    <div class="col-md-4">
+      <label for="searchEmail" class="form-label">Tìm kiếm theo Gmail</label>
+      <input type="text" class="form-control" id="searchEmail" name="q" value="{{ search_query }}" placeholder="Nhập email...">
+    </div>
+    <div class="col-md-3">
+      <label for="startDate" class="form-label">Từ ngày</label>
+      <input type="date" class="form-control" id="startDate" name="start_date" value="{{ start_date }}">
+    </div>
+    <div class="col-md-3">
+      <label for="endDate" class="form-label">Đến ngày</label>
+      <input type="date" class="form-control" id="endDate" name="end_date" value="{{ end_date }}">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-fill">Lọc</button>
+    </div>
+  </div>
+  {% if filter_total_users is not none %}
+  <div class="filter-summary mt-3">
+    {% if start_date or end_date %}
+      <span>Trong khoảng</span>
+      <strong>{{ start_date or 'Bắt đầu' }}</strong>
+      <span>→</span>
+      <strong>{{ end_date or 'Hiện tại' }}</strong>
+      <span class="summary-count">có <span id="filterCountValue">{{ filter_total_users }}</span> tài khoản đăng ký</span>
+    {% else %}
+      <span class="summary-count">Đang hiển thị <span id="filterCountValue">{{ filter_total_users }}</span> tài khoản</span>
+    {% endif %}
+  </div>
+  {% if filter_users_details %}
+  <div class="filter-detail-list mt-3">
+    <div class="filter-detail-header">
+      <span class="fw-semibold">Danh sách tài khoản trong khoảng đã lọc</span>
+      <span class="badge bg-dark-subtle text-dark" id="filterDetailBadge">{{ filter_users_details|length }}</span>
+    </div>
+    <ul class="list-unstyled mb-0 filter-detail-items">
+      {% for item in filter_users_details %}
+      <li class="filter-detail-item" data-email="{{ item.email }}">
+        <div>
+          <p class="mb-0 fw-semibold">{{ item.email }}</p>
+          <small class="text-muted">Đăng ký {{ item.created_at_display }}</small>
+        </div>
+        {% if item.status == 'deleted' %}
+          <span class="badge bg-danger-subtle text-danger">Đã xóa</span>
+        {% else %}
+          <span class="badge bg-success-subtle text-success">Đang hoạt động</span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% endif %}
+      </form>
 
-{% if error_message %}
-<div class="alert alert-danger alert-dismissible fade show" role="alert">
-  {{ error_message }}
-  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-{% endif %}
+    </div>
 
-<div class="card border-0 shadow-sm">
+    <div class="admin-table-stack">
+      <div class="card border-0 shadow-sm admin-section" id="activeUsersSection">
   <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
     <h5 class="mb-0"><i class="bi bi-people"></i> Danh sách người dùng</h5>
-    <span class="badge bg-light text-dark">Tổng: {{ users|length }}</span>
+    <span class="badge bg-light text-dark">Tổng: <span id="activeTableCount">{{ users|length }}</span></span>
   </div>
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -53,13 +342,17 @@
                   <span class="badge bg-secondary">User</span>
                 {% endif %}
               </td>
-              <td>{{ user_item.created_at.strftime('%d/%m/%Y %H:%M') if user_item.created_at else '-' }}</td>
+              <td>
+                <span class="datetime-cell" data-datetime="{{ user_item.created_at_iso or '' }}">
+                  {{ user_item.created_at_display }}
+                </span>
+              </td>
               <td class="text-end">
                 {% if user_item.id == current_user.id %}
                   <span class="text-muted small">(Bạn)</span>
                 {% else %}
-                  <form method="post" action="/admin/users/{{ user_item.id }}/delete" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                  <form method="post" action="/admin/users/{{ user_item.id }}/delete" class="d-inline delete-user-form" data-user-id="{{ user_item.id }}" data-user-email="{{ user_item.email }}" data-user-role="{{ user_item.role }}" data-created-iso="{{ user_item.created_at_iso or '' }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
                       <i class="bi bi-trash"></i> Xóa
                     </button>
                   </form>
@@ -68,7 +361,7 @@
             </tr>
             {% endfor %}
           {% else %}
-            <tr>
+            <tr data-empty-row="true">
               <td colspan="5" class="text-center py-4 text-muted">Chưa có người dùng nào.</td>
             </tr>
           {% endif %}
@@ -76,5 +369,482 @@
       </table>
     </div>
   </div>
+      </div>
+
+      <div class="card border-0 shadow-sm admin-section" id="deletedUsersSection">
+  <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-archive"></i> Tài khoản đã xóa</h5>
+    <span class="badge bg-light text-dark">Tổng: <span id="deletedTableCount">{{ deleted_users|length }}</span></span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Vai trò</th>
+            <th>Ngày tạo</th>
+            <th>Ngày xóa</th>
+            <th class="text-end">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if deleted_users %}
+            {% for user_item in deleted_users %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ user_item.email }}</td>
+              <td>
+                {% if user_item.role == 'admin' %}
+                  <span class="badge bg-primary">Admin</span>
+                {% else %}
+                  <span class="badge bg-secondary">User</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="datetime-cell" data-datetime="{{ user_item.created_at_iso or '' }}">
+                  {{ user_item.created_at_display }}
+                </span>
+              </td>
+              <td>
+                <span class="datetime-cell" data-datetime="{{ user_item.deleted_at_iso or '' }}">
+                  {{ user_item.deleted_at_display }}
+                </span>
+              </td>
+              <td class="text-end">
+                <form method="post" action="/admin/users/{{ user_item.id }}/restore" class="d-inline restore-user-form" data-user-id="{{ user_item.id }}" data-user-email="{{ user_item.email }}">
+                  <button type="submit" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr data-empty-row="true">
+              <td colspan="6" class="text-center py-4 text-muted">Không có tài khoản nào trong thùng rác.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
+    {% block scripts %}
+    {{ super() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const formatter = new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+
+      const currentUserId = {{ current_user.id }};
+      const activeCountEl = document.getElementById('activeCount');
+      const deletedCountEl = document.getElementById('deletedCount');
+      const activeTableCountEl = document.getElementById('activeTableCount');
+      const deletedTableCountEl = document.getElementById('deletedTableCount');
+      const activeTableBody = document.querySelector('#activeUsersSection tbody');
+      const deletedTableBody = document.querySelector('#deletedUsersSection tbody');
+
+      const formatVietnamDate = (iso) => {
+        if (!iso) {
+          return '-';
+        }
+        const date = new Date(iso);
+        if (Number.isNaN(date.getTime())) {
+          return '-';
+        }
+        return formatter.format(date);
+      };
+
+      const refreshDatetimeCells = () => {
+        document.querySelectorAll('.datetime-cell').forEach((cell) => {
+          cell.textContent = formatVietnamDate(cell.dataset.datetime);
+        });
+      };
+      refreshDatetimeCells();
+
+      const parseCount = (element) => {
+        if (!element) {
+          return 0;
+        }
+        const value = parseInt(element.textContent.trim(), 10);
+        return Number.isNaN(value) ? 0 : value;
+      };
+
+      const setCount = (element, value) => {
+        if (!element) {
+          return;
+        }
+        const normalized = Math.max(0, value);
+        element.textContent = normalized;
+      };
+
+      const buildEmailSelector = (email) => {
+        if (window.CSS && CSS.escape) {
+          return `.filter-detail-item[data-email="${CSS.escape(email)}"]`;
+        }
+        return `.filter-detail-item[data-email="${email.replace(/"/g, '\\"')}"]`;
+      };
+
+      const markFilterEntryDeleted = (email) => {
+        if (!email) {
+          return;
+        }
+        const entry = document.querySelector(buildEmailSelector(email));
+        if (entry) {
+          const badge = entry.querySelector('.badge');
+          if (badge) {
+            badge.classList.remove('bg-success-subtle', 'text-success');
+            badge.classList.add('bg-danger-subtle', 'text-danger');
+            badge.textContent = 'Đã xóa';
+          }
+        }
+      };
+
+      const markFilterEntryActive = (email) => {
+        if (!email) {
+          return;
+        }
+        const entry = document.querySelector(buildEmailSelector(email));
+        if (entry) {
+          const badge = entry.querySelector('.badge');
+          if (badge) {
+            badge.classList.remove('bg-danger-subtle', 'text-danger');
+            badge.classList.add('bg-success-subtle', 'text-success');
+            badge.textContent = 'Đang hoạt động';
+          }
+        }
+      };
+
+      const hasDataRows = (tbody) => {
+        return Boolean(tbody?.querySelector('tr:not([data-empty-row="true"])'));
+      };
+
+      const ensureEmptyRow = (tbody, columns, message) => {
+        if (!tbody) {
+          return;
+        }
+        const emptyRow = tbody.querySelector('[data-empty-row="true"]');
+        if (!hasDataRows(tbody)) {
+          if (!emptyRow) {
+            const row = document.createElement('tr');
+            row.setAttribute('data-empty-row', 'true');
+            row.innerHTML = `<td colspan="${columns}" class="text-center py-4 text-muted">${message}</td>`;
+            tbody.appendChild(row);
+          }
+        } else if (emptyRow) {
+          emptyRow.remove();
+        }
+      };
+
+      const renumberTable = (tbody) => {
+        if (!tbody) {
+          return;
+        }
+        let index = 1;
+        tbody.querySelectorAll('tr').forEach((row) => {
+          if (row.dataset.emptyRow === 'true') {
+            return;
+          }
+          const indexCell = row.querySelector('td');
+          if (indexCell) {
+            indexCell.textContent = index++;
+          }
+        });
+      };
+
+      const ensureActiveEmptyRow = () => ensureEmptyRow(activeTableBody, 5, 'Chưa có người dùng nào.');
+      const ensureDeletedEmptyRow = () => ensureEmptyRow(deletedTableBody, 6, 'Không có tài khoản nào trong thùng rác.');
+
+      ensureActiveEmptyRow();
+      ensureDeletedEmptyRow();
+      renumberTable(activeTableBody);
+      renumberTable(deletedTableBody);
+
+      const decrementCounters = () => {
+        setCount(activeCountEl, parseCount(activeCountEl) - 1);
+        setCount(deletedCountEl, parseCount(deletedCountEl) + 1);
+        setCount(activeTableCountEl, parseCount(activeTableCountEl) - 1);
+        setCount(deletedTableCountEl, parseCount(deletedTableCountEl) + 1);
+      };
+
+      const incrementCountersAfterRestore = () => {
+        setCount(activeCountEl, parseCount(activeCountEl) + 1);
+        setCount(deletedCountEl, parseCount(deletedCountEl) - 1);
+        setCount(activeTableCountEl, parseCount(activeTableCountEl) + 1);
+        setCount(deletedTableCountEl, parseCount(deletedTableCountEl) - 1);
+      };
+
+      const setSubmittingState = (button, isSubmitting) => {
+        if (!button) {
+          return;
+        }
+        if (isSubmitting) {
+          button.classList.add('disabled');
+          button.setAttribute('disabled', 'true');
+        } else {
+          button.classList.remove('disabled');
+          button.removeAttribute('disabled');
+        }
+      };
+
+      const appendActiveUserRow = (user) => {
+        if (!user || !activeTableBody) {
+          return;
+        }
+        const row = document.createElement('tr');
+        const roleBadge = user.role === 'admin'
+          ? '<span class="badge bg-primary">Admin</span>'
+          : '<span class="badge bg-secondary">User</span>';
+        const createdIso = user.created_at_iso || '';
+        const createdDisplay = user.created_at_display || formatVietnamDate(createdIso);
+        const actionCell = user.id === currentUserId
+          ? '<span class="text-muted small">(Bạn)</span>'
+          : `<form method="post" action="/admin/users/${user.id}/delete" class="d-inline delete-user-form" data-user-id="${user.id}" data-user-email="${user.email}" data-user-role="${user.role}" data-created-iso="${createdIso}">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i> Xóa
+                </button>
+             </form>`;
+        row.innerHTML = `
+          <td></td>
+          <td>${user.email}</td>
+          <td>${roleBadge}</td>
+          <td><span class="datetime-cell" data-datetime="${createdIso}">${createdDisplay}</span></td>
+          <td class="text-end">${actionCell}</td>
+        `;
+        activeTableBody.prepend(row);
+        const deleteForm = row.querySelector('.delete-user-form');
+        if (deleteForm) {
+          bindDeleteHandler(deleteForm);
+        }
+        renumberTable(activeTableBody);
+        ensureActiveEmptyRow();
+        refreshDatetimeCells();
+      };
+
+      const appendDeletedUserRow = (user) => {
+        if (!user || !deletedTableBody) {
+          return;
+        }
+        const roleBadge = user.role === 'admin'
+          ? '<span class="badge bg-primary">Admin</span>'
+          : '<span class="badge bg-secondary">User</span>';
+        const createdIso = user.created_at_iso || '';
+        const createdDisplay = user.created_at_display || formatVietnamDate(createdIso);
+        const deletedIso = user.deleted_at_iso || '';
+        const deletedDisplay = user.deleted_at_display || formatVietnamDate(deletedIso);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td></td>
+          <td>${user.email}</td>
+          <td>${roleBadge}</td>
+          <td><span class="datetime-cell" data-datetime="${createdIso}">${createdDisplay}</span></td>
+          <td><span class="datetime-cell" data-datetime="${deletedIso}">${deletedDisplay}</span></td>
+          <td class="text-end">
+            <form method="post" action="/admin/users/${user.id}/restore" class="d-inline restore-user-form" data-user-id="${user.id}" data-user-email="${user.email}">
+              <button type="submit" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+              </button>
+            </form>
+          </td>
+        `;
+        deletedTableBody.prepend(row);
+        const restoreForm = row.querySelector('.restore-user-form');
+        if (restoreForm) {
+          bindRestoreHandler(restoreForm);
+        }
+        renumberTable(deletedTableBody);
+        ensureDeletedEmptyRow();
+        refreshDatetimeCells();
+      };
+
+      const bindDeleteHandler = (form) => {
+        if (!form || form.dataset.bound === '1') {
+          return;
+        }
+        form.dataset.bound = '1';
+        form.addEventListener('submit', handleDeleteSubmit);
+      };
+
+      const bindRestoreHandler = (form) => {
+        if (!form || form.dataset.bound === '1') {
+          return;
+        }
+        form.dataset.bound = '1';
+        form.addEventListener('submit', handleRestoreSubmit);
+      };
+
+      const handleDeleteSubmit = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const email = form.dataset.userEmail || '';
+        if (email && !confirm(`Xác nhận xóa người dùng ${email}?`)) {
+          return;
+        }
+        const submitButton = form.querySelector('button[type="submit"]');
+        setSubmittingState(submitButton, true);
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(new FormData(form)),
+            credentials: 'same-origin',
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.status !== 'ok') {
+            throw new Error(data.message || 'Không thể xóa người dùng.');
+          }
+          const row = form.closest('tr');
+          const createdCell = row?.querySelector('.datetime-cell');
+          const newDeletedIso = new Date().toISOString();
+          const deletedUserPayload = {
+            id: Number(form.dataset.userId || 0),
+            email,
+            role: form.dataset.userRole || 'user',
+            created_at_iso: form.dataset.createdIso || createdCell?.dataset.datetime || '',
+            created_at_display: createdCell?.textContent?.trim() || '-',
+            deleted_at_iso: newDeletedIso,
+            deleted_at_display: formatVietnamDate(newDeletedIso),
+          };
+          row?.remove();
+          renumberTable(activeTableBody);
+          ensureActiveEmptyRow();
+          appendDeletedUserRow(deletedUserPayload);
+          decrementCounters();
+          markFilterEntryDeleted(email);
+        } catch (error) {
+          alert(error.message || 'Không thể xóa người dùng.');
+        } finally {
+          if (form.isConnected) {
+            setSubmittingState(form.querySelector('button[type="submit"]'), false);
+          }
+        }
+      };
+
+      const handleRestoreSubmit = async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const email = form.dataset.userEmail || '';
+        const submitButton = form.querySelector('button[type="submit"]');
+        setSubmittingState(submitButton, true);
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(new FormData(form)),
+            credentials: 'same-origin',
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.status !== 'ok') {
+            throw new Error(data.message || 'Không thể khôi phục người dùng.');
+          }
+          const row = form.closest('tr');
+          row?.remove();
+          renumberTable(deletedTableBody);
+          ensureDeletedEmptyRow();
+          incrementCountersAfterRestore();
+          markFilterEntryActive(email);
+          if (data.user) {
+            appendActiveUserRow(data.user);
+          }
+        } catch (error) {
+          alert(error.message || 'Không thể khôi phục người dùng.');
+        } finally {
+          if (form.isConnected) {
+            setSubmittingState(form.querySelector('button[type="submit"]'), false);
+          }
+        }
+      };
+
+      document.querySelectorAll('.delete-user-form').forEach(bindDeleteHandler);
+      document.querySelectorAll('.restore-user-form').forEach(bindRestoreHandler);
+
+      const menuToggle = document.getElementById('adminMenuToggle');
+      const drawer = document.getElementById('adminQuickMenu');
+      const overlay = document.getElementById('adminMenuOverlay');
+      const closeBtn = drawer ? drawer.querySelector('.admin-menu-close') : null;
+      const sectionButtons = document.querySelectorAll('.admin-menu-action');
+      const sections = document.querySelectorAll('.admin-section');
+      const showAllSectionsByDefault = {{ (search_query | default('', true) | trim | length > 0)|tojson }};
+
+      const openMenu = () => {
+        drawer?.classList.add('show');
+        overlay?.classList.add('show');
+        menuToggle?.setAttribute('aria-expanded', 'true');
+        drawer?.setAttribute('aria-hidden', 'false');
+        overlay?.setAttribute('aria-hidden', 'false');
+      };
+
+      const closeMenu = () => {
+        drawer?.classList.remove('show');
+        overlay?.classList.remove('show');
+        menuToggle?.setAttribute('aria-expanded', 'false');
+        drawer?.setAttribute('aria-hidden', 'true');
+        overlay?.setAttribute('aria-hidden', 'true');
+      };
+
+      const showSection = (sectionId) => {
+        let targetElement = null;
+        sections.forEach((section) => {
+          if (section.id === sectionId) {
+            section.classList.add('show');
+            targetElement = section;
+          } else {
+            section.classList.remove('show');
+          }
+        });
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      };
+
+      menuToggle?.addEventListener('click', () => {
+        if (drawer?.classList.contains('show')) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      });
+      overlay?.addEventListener('click', closeMenu);
+      closeBtn?.addEventListener('click', closeMenu);
+      sectionButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const target = button.getAttribute('data-section-target');
+          if (target) {
+            showSection(target);
+          }
+          closeMenu();
+        });
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeMenu();
+        }
+      });
+      if (showAllSectionsByDefault) {
+        sections.forEach((section) => section.classList.add('show'));
+      }
+      closeMenu();
+    });
+    </script>
+    {% endblock %}

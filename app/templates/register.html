@@ -14,7 +14,7 @@
     <form id="registerForm" method="post" action="/api/v1/auth/register-page" class="auth-form">
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" required>
+        <input type="email" class="form-control" id="email" name="email" required value="{{ prefill_email or '' }}">
       </div>
 
       <div class="mb-3">
@@ -25,6 +25,15 @@
             <svg id="eyeIconReg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
         </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="otp" class="form-label">Mã OTP</label>
+        <div class="input-group">
+          <input type="text" class="form-control" id="otp" name="otp" required maxlength="6" minlength="6" pattern="\d{6}" placeholder="Nhập mã OTP đã gửi" autocomplete="one-time-code">
+          <button type="button" class="btn btn-outline-secondary" id="sendOtpBtn">Gửi OTP</button>
+        </div>
+        <div id="otpMessage" class="form-text mt-1"></div>
       </div>
 
       <button type="submit" class="btn btn-primary w-100">Đăng ký</button>
@@ -52,7 +61,61 @@
     }
   });
 
+  const emailInput = document.getElementById('email');
+  const otpInput = document.getElementById('otp');
+  const sendOtpBtn = document.getElementById('sendOtpBtn');
+  const otpMessage = document.getElementById('otpMessage');
   const regForm = document.getElementById('registerForm');
+
+  const setOtpMessage = (text, isError = false) => {
+    if (!otpMessage) {
+      return;
+    }
+    otpMessage.textContent = text;
+    otpMessage.classList.toggle('text-danger', isError);
+    otpMessage.classList.toggle('text-success', !isError);
+  };
+
+  if (sendOtpBtn) {
+    sendOtpBtn.addEventListener('click', async () => {
+      if (!emailInput) {
+        return;
+      }
+      const emailValue = emailInput.value.trim();
+      if (!emailValue) {
+        setOtpMessage('Vui lòng nhập email trước khi gửi OTP', true);
+        emailInput.focus();
+        return;
+      }
+      setOtpMessage('Đang gửi mã OTP...', false);
+      const originalText = sendOtpBtn.innerHTML;
+      sendOtpBtn.disabled = true;
+      sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Đang gửi';
+      try {
+        const response = await fetch('/api/v1/auth/register/send-otp', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({ email: emailValue })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = (data && data.message) || (data.detail && data.detail.message) || 'Không thể gửi OTP';
+          throw new Error(message);
+        }
+        setOtpMessage('OTP đã được gửi. Vui lòng kiểm tra hộp thư.', false);
+        otpInput?.focus();
+      } catch (error) {
+        setOtpMessage(error.message || 'Không thể gửi OTP, vui lòng thử lại.', true);
+      } finally {
+        sendOtpBtn.disabled = false;
+        sendOtpBtn.innerHTML = originalText;
+      }
+    });
+  }
+
   regForm.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();

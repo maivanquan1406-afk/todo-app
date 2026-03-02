@@ -1,17 +1,30 @@
-from fastapi import APIRouter, HTTPException, Depends, Header, Request, Form, status
+from fastapi import APIRouter, HTTPException, Depends, Header, Request, Form, status, Body
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
+from urllib.parse import quote
+
+from pydantic import BaseModel, EmailStr, TypeAdapter, ValidationError as PydanticValidationError
 
 from app.services.user_service import service as user_service
+from app.services import registration_otp_service
 from app.models import UserCreate, UserLogin, UserResponse, Token
 from app.core.jwt import decode_token
-from app.core.exceptions import AppError, ValidationError, ConflictError, NotFoundError, DatabaseError, AuthenticationError
+from app.core.exceptions import (
+    AppError,
+    ValidationError,
+    ConflictError,
+    NotFoundError,
+    DatabaseError,
+    AuthenticationError,
+    EmailError,
+)
 from app.core.config import logger
 
 templates = Jinja2Templates(directory="app/templates")
 
 router = APIRouter()
+_email_adapter = TypeAdapter(EmailStr)
 
 
 def _map_app_error(exc: AppError) -> HTTPException:
@@ -80,32 +93,92 @@ def get_current_user(authorization: Optional[str] = Header(None)):
 
 
 # HTML pages for simple login/register UI (form-based)
+class RegistrationOtpRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/register/send-otp")
+def register_send_otp(
+    payload: RegistrationOtpRequest | None = Body(default=None),
+    email: str | None = Form(default=None),
+):
+    try:
+        raw_email = email or (payload.email if payload else None)
+        if not raw_email:
+            raise ValidationError("Email là bắt buộc", field="email")
+        try:
+            normalized_email = str(_email_adapter.validate_python(raw_email.strip().lower()))
+        except PydanticValidationError:
+            raise ValidationError("Định dạng email không hợp lệ", field="email")
+        registration_otp_service.request_otp(normalized_email)
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail={"message": str(exc)})
+    except EmailError:
+        logger.warning("Không thể gửi OTP đăng ký", exc_info=True)
+        raise HTTPException(status_code=500, detail={"message": "Không thể gửi email OTP"})
+    except Exception:
+        logger.exception("Lỗi không mong đợi khi gửi OTP đăng ký")
+        raise HTTPException(status_code=500, detail={"message": "unexpected error"})
+    return {"message": "OTP đã được gửi nếu email hợp lệ."}
+
+
 @router.get("/register-page", response_class=HTMLResponse)
 def register_page(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request, "error": None})
+    return templates.TemplateResponse("register.html", {"request": request, "error": None, "prefill_email": ""})
 
 
 @router.post("/register-page", response_class=HTMLResponse)
-def register_page_post(request: Request, email: str = Form(...), password: str = Form(...)):
+def register_page_post(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    otp: str = Form(...),
+):
+    normalized_email = email.strip().lower()
     if not (5 <= len(password) <= 100):
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Mật khẩu phải có độ dài 5-100 ký tự"})
-    if "@" not in email:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Định dạng email không hợp lệ"})
-    payload = UserCreate(email=email, password=password)
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Mật khẩu phải có độ dài 5-100 ký tự", "prefill_email": normalized_email},
+        )
+    try:
+        validated_email = _email_adapter.validate_python(normalized_email)
+    except PydanticValidationError:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Định dạng email không hợp lệ", "prefill_email": normalized_email},
+        )
+    try:
+        registration_otp_service.validate_otp(str(validated_email), otp)
+    except ValidationError as exc:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": str(exc), "prefill_email": normalized_email},
+        )
+    payload = UserCreate(email=str(validated_email), password=password)
     try:
         user_service.register(payload)
     except ConflictError:
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Email đã tồn tại"})
-    except AppError as exc:
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Email đã tồn tại", "prefill_email": normalized_email},
+        )
+    except AppError:
         logger.error("Register page error", exc_info=True)
-        return templates.TemplateResponse("register.html", {"request": request, "error": "Có lỗi hệ thống, vui lòng thử lại"})
-    # Redirect to login page after successful register
-    return RedirectResponse(url="/api/v1/auth/login-page", status_code=status.HTTP_303_SEE_OTHER)
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "Có lỗi hệ thống, vui lòng thử lại", "prefill_email": normalized_email},
+        )
+    # Redirect to login page after successful register with email prefilled
+    redirect_url = f"/api/v1/auth/login-page?email={quote(str(validated_email))}"
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/login-page", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request, "error": None})
+def login_page(request: Request, email: Optional[str] = None):
+    return templates.TemplateResponse(
+        "login.html",
+        {"request": request, "error": None, "prefill_email": (email or "").lower()},
+    )
 
 
 @router.post("/login-page", response_class=HTMLResponse)
@@ -114,10 +187,16 @@ def login_page_post(request: Request, email: str = Form(...), password: str = Fo
     try:
         token = user_service.login(payload)
     except (ValidationError, AuthenticationError):
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Email hoặc mật khẩu không đúng"})
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Email hoặc mật khẩu không đúng", "prefill_email": email.lower()},
+        )
     except AppError as exc:
         logger.error("Login page error", exc_info=True)
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Có lỗi hệ thống, vui lòng thử lại"})
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Có lỗi hệ thống, vui lòng thử lại", "prefill_email": email.lower()},
+        )
     # Set token in a HttpOnly cookie and redirect to home
     response = RedirectResponse(url='/dashboard', status_code=status.HTTP_303_SEE_OTHER)
     # store raw token; in production consider secure flags and proper session management
@@ -130,4 +209,27 @@ def logout():
     response = RedirectResponse(url='/api/v1/auth/login-page', status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie('access_token')
     return response
+
+
+@router.get("/forgot-password-page", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request})
+
+
+@router.get("/verify-otp-page", response_class=HTMLResponse)
+def verify_otp_page(request: Request, email: Optional[str] = None):
+    return templates.TemplateResponse(
+        "verify_otp.html",
+        {"request": request, "email": email or ""}
+    )
+
+
+@router.get("/reset-password-page", response_class=HTMLResponse)
+def reset_password_page(request: Request, email: Optional[str] = None):
+    context = {
+        "request": request,
+        "email": email or "",
+        "email_missing": email is None or email.strip() == ""
+    }
+    return templates.TemplateResponse("reset_password.html", context)
 

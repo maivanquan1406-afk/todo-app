@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý người dùng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient shadow-sm">
+      <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="/">
+          <i class="bi bi-check2-square"></i> Task Manager
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/">Trang chủ</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/dashboard">Bảng điều khiển</a>
+            </li>
+            
+            
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/users">Quản lý người dùng</a>
+            </li>
+            
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4 px-3" style="max-width: 1400px; margin: 0 auto;">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h1 class="card-title mb-4 text-primary">Quản trị người dùng</h1>
+          
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">Chỉ admin mới có thể truy cập trang này.</p>
+  <a href="/dashboard" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+  </a>
+</div>
+
+
+
+
+
+<form class="card border-0 shadow-sm mb-3" method="get" action="/admin/users">
+  <div class="card-body row g-3 align-items-end">
+    <div class="col-md-4">
+      <label for="searchEmail" class="form-label">Tìm kiếm theo Gmail</label>
+      <input type="text" class="form-control" id="searchEmail" name="q" value="" placeholder="Nhập email...">
+    </div>
+    <div class="col-md-3">
+      <label for="startDate" class="form-label">Từ ngày</label>
+      <input type="date" class="form-control" id="startDate" name="start_date" value="">
+    </div>
+    <div class="col-md-3">
+      <label for="endDate" class="form-label">Đến ngày</label>
+      <input type="date" class="form-control" id="endDate" name="end_date" value="">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary flex-fill">Lọc</button>
+      <a href="/admin/users" class="btn btn-outline-secondary flex-fill">Xóa</a>
+    </div>
+  </div>
+</form>
+
+<form class="card border-0 shadow-sm mb-4" method="post" action="/admin/users/delete-by-date">
+  <div class="card-body row g-3 align-items-end">
+    <div class="col-md-4">
+      <label for="deleteStart" class="form-label">Xóa từ ngày</label>
+      <input type="date" class="form-control" id="deleteStart" name="start_date" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="col-md-4">
+      <label for="deleteEnd" class="form-label">đến ngày</label>
+      <input type="date" class="form-control" id="deleteEnd" name="end_date" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">&nbsp;</label>
+      <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Xóa tất cả tài khoản trong khoảng ngày đã chọn?');">
+        <i class="bi bi-trash"></i> Xóa theo ngày
+      </button>
+    </div>
+  </div>
+</form>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-people"></i> Danh sách người dùng</h5>
+    <span class="badge bg-light text-dark">Tổng: 32</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Email</th>
+            <th>Vai trò</th>
+            <th>Ngày tạo</th>
+            <th class="text-end">Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            
+            <tr>
+              <td>1</td>
+              <td>maivanquan14062005@gmail.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:37</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/127/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>2</td>
+              <td>alice-58549c47-15cd-403e-8f29-fea62b550f44@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/126/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>3</td>
+              <td>alice-e5a301d3-4d5b-4eb5-a0e6-9f70fc73fae2@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/125/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>4</td>
+              <td>alice-d3278577-f704-49b7-ab3f-5886ffeb8830@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/124/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>5</td>
+              <td>alice-89d28f49-b0b6-4909-8482-c32e729b5363@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/123/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>6</td>
+              <td>alice-ddadb8a5-808a-4202-811d-22cad2eea0ed@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/122/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>7</td>
+              <td>alice-0b3e80ec-bc8e-4a6c-ac34-999ab89783c9@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/121/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>8</td>
+              <td>alice-f1b8dfe2-46f0-4bc9-8681-f0d1c2ee3a22@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/120/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>9</td>
+              <td>test-2edf9737-1fbb-476f-af7e-0ad179ba90aa@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/119/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>10</td>
+              <td>test-e9dd7d38-ae38-4dec-ae19-2c89acbd741f@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/118/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>11</td>
+              <td>test-b771672d-6592-45cf-a12e-c1dd21eb1929@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/117/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>12</td>
+              <td>test-248498dc-c292-4f99-80d5-7101ad702aec@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/116/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>13</td>
+              <td>test-aa77f253-6991-4180-a585-95833e13ed81@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/115/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>14</td>
+              <td>alice-0d1757b9-d8ee-4d1f-9973-bffb42a60bc0@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/114/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>15</td>
+              <td>alice-4a404539-3d95-434c-8726-a44c6abaf99c@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/113/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>16</td>
+              <td>alice-c6f35b8a-8934-4cd7-a8a6-7c4472f28dc4@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/112/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>17</td>
+              <td>bob-b54cd32b-f84b-487d-aba8-6967876673cd@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/111/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>18</td>
+              <td>alice-205e6a0b-c0b8-470b-aaf7-c01321eecd2e@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/110/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>19</td>
+              <td>bob-a5f9cc85-725b-4b4d-bcb6-c4556ebfa9e1@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/109/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>20</td>
+              <td>alice-ad506f00-5275-46ed-bc0f-a445b951b7ca@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/108/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>21</td>
+              <td>alice-275d64cc-d0cb-4c0f-aba1-da78c0c49462@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/107/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>22</td>
+              <td>alice-f74a7540-2cef-43d2-85b4-3e9dae6af0fe@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/106/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>23</td>
+              <td>alice-af31cf2d-8428-431a-9068-b9ea492080b6@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/105/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>24</td>
+              <td>alice-6e9e02b7-9429-4dd5-8de0-1b63e682a784@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/104/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>25</td>
+              <td>alice-53f6bc14-43a7-476e-a305-3db13ea06201@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/103/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>26</td>
+              <td>alice-354a83cd-47a5-42d1-b2f0-1e5af1cabdd0@test.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/102/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>27</td>
+              <td>test-0b111c7d-ab6e-4f2b-b028-dac48f87421d@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/101/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>28</td>
+              <td>test-ecde480a-c838-408b-870f-7184faa9c888@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/100/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>29</td>
+              <td>test-a562f02d-271e-4c76-a2dd-0699d72765cc@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/99/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>30</td>
+              <td>test-67b2c444-8c8a-40d3-8e84-18e4103f8b34@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/98/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>31</td>
+              <td>test-1aed4e43-fb69-43da-a633-545960dfb231@example.com</td>
+              <td>
+                
+                  <span class="badge bg-secondary">User</span>
+                
+              </td>
+              <td>01/03/2026 12:11</td>
+              <td class="text-end">
+                
+                  <form method="post" action="/admin/users/97/delete" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xác nhận xóa người dùng này?');">
+                      <i class="bi bi-trash"></i> Xóa
+                    </button>
+                  </form>
+                
+              </td>
+            </tr>
+            
+            <tr>
+              <td>32</td>
+              <td>maivanquan1406@gmail.com</td>
+              <td>
+                
+                  <span class="badge bg-primary">Admin</span>
+                
+              </td>
+              <td>09/02/2026 21:44</td>
+              <td class="text-end">
+                
+                  <span class="text-muted small">(Bạn)</span>
+                
+              </td>
+            </tr>
+            
+          
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+      <p class="mb-0">&copy; 2026 Task Manager. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+  </body>
+</html>

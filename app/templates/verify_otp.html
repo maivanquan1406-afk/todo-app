@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Xác minh OTP{% endblock %}
+{% block header %}Xác minh OTP{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    {% if not email %}
+      <div class="alert alert-warning" role="alert">
+        Thiếu email. Vui lòng quay lại trang quên mật khẩu và nhập email của bạn.
+      </div>
+    {% else %}
+      <p class="text-muted">Nhập mã OTP gồm 6 chữ số đã được gửi tới {{ email }}.</p>
+    {% endif %}
+
+    <div id="otpSuccess" class="alert alert-success d-none" role="alert"></div>
+    <div id="otpError" class="alert alert-danger d-none" role="alert"></div>
+
+    <form id="otpForm" method="post" action="/api/v1/auth/verify-otp" class="auth-form" {% if not email %}data-disabled="true"{% endif %}>
+      <input type="hidden" name="email" value="{{ email }}">
+      <div class="mb-3">
+        <label for="otpInput" class="form-label">Mã OTP</label>
+        <input type="text" class="form-control" id="otpInput" name="otp" maxlength="6" minlength="6" pattern="[0-9]{6}" required {% if not email %}disabled{% endif %} placeholder="123456">
+      </div>
+      <button type="submit" class="btn btn-primary w-100" {% if not email %}disabled{% endif %}>Xác minh</button>
+    </form>
+
+    <div class="mt-3 text-center">
+      <a href="/api/v1/auth/forgot-password-page" class="text-decoration-none">Quay lại quên mật khẩu</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const otpForm = document.getElementById('otpForm');
+  if (otpForm && !otpForm.dataset.disabled) {
+    const otpSuccess = document.getElementById('otpSuccess');
+    const otpError = document.getElementById('otpError');
+
+    otpForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      otpSuccess.classList.add('d-none');
+      otpError.classList.add('d-none');
+
+      const formData = new FormData(otpForm);
+      try {
+        const response = await fetch(otpForm.action, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: formData
+        });
+        const responseText = await response.text();
+        let data = {};
+        if (responseText) {
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            data = { raw: responseText };
+          }
+        }
+
+        if (!response.ok) {
+          const detail = data.detail;
+          let message;
+          if (detail && typeof detail === 'object') {
+            message = detail.message;
+          } else if (typeof detail === 'string') {
+            message = detail;
+          } else if (typeof data.message === 'string') {
+            message = data.message;
+          } else if (data.raw) {
+            message = data.raw;
+          } else {
+            message = response.statusText || 'Không thể xác minh OTP, vui lòng thử lại.';
+          }
+          throw new Error(message);
+        }
+
+        otpSuccess.textContent = data.message || 'OTP hợp lệ, vui lòng đặt lại mật khẩu.';
+        otpSuccess.classList.remove('d-none');
+        const emailValue = formData.get('email');
+        if (emailValue) {
+          setTimeout(() => {
+            const redirectUrl = `/api/v1/auth/reset-password-page?email=${encodeURIComponent(emailValue)}`;
+            window.location.href = redirectUrl;
+          }, 1200);
+        }
+      } catch (error) {
+        otpError.textContent = error.message || 'Không thể xác minh OTP, vui lòng thử lại.';
+        otpError.classList.remove('d-none');
+      }
+    });
+  }
+</script>
+{% endblock %}

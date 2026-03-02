@@ -69,6 +69,22 @@ A comprehensive **8-level** Todo List API built with FastAPI, SQLModel, and JWT 
    pytest -v
    ```
 
+### Configure SMTP (Gmail example)
+
+Create a `.env` file to enable OTP emails via Gmail SMTP. You must use an App Password if the account has 2FA enabled:
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your_gmail_address@gmail.com
+SMTP_PASSWORD=your_app_password
+SMTP_FROM=Task Manager <your_gmail_address@gmail.com>
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+```
+
+Restart the server after updating `.env` so the new settings are loaded.
+
 ## Key Endpoints
 http://127.0.0.1:8000/api/v1/auth/login-page
 **Authentication:**
@@ -160,7 +176,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 
 ### Login
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
+curl -X POST  \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "pass123"}'
 ```
@@ -199,3 +215,11 @@ curl -X GET http://localhost:8000/api/v1/todos/overdue \
 
 Version: 1.0.0
 Built for Lec05 - Application Development Course
+
+
+# cách chạy hệ thống
+
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8301
+
+# địa chỉ
+http://127.0.0.1:8301/api/v1/auth/login-page

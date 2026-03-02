@@ -14,7 +14,11 @@
     <form id="loginForm" method="post" action="/api/v1/auth/login-page" class="auth-form">
       <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" required>
+        <input type="email" class="form-control" id="email" name="email" required value="{{ prefill_email or '' }}" data-prefill="{{ prefill_email or '' }}">
+        <div id="recentEmailHint" class="form-text text-muted d-none">
+          <span id="recentEmailLabel">Đăng nhập gần nhất:</span>
+          <button type="button" class="btn btn-link p-0 align-baseline" id="useRecentEmail"></button>
+        </div>
       </div>
       
       <div class="mb-3">
@@ -24,6 +28,9 @@
           <button id="togglePwd" class="pwd-toggle" type="button" aria-label="Hiện/ẩn mật khẩu">
             <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
           </button>
+        </div>
+        <div class="text-end mt-2">
+          <a href="/api/v1/auth/forgot-password-page" class="text-decoration-none">Quên mật khẩu?</a>
         </div>
       </div>
 
@@ -40,6 +47,10 @@
   const pwd = document.getElementById('password');
   const toggle = document.getElementById('togglePwd');
   const eyeIcon = document.getElementById('eyeIcon');
+  const emailInput = document.getElementById('email');
+  const recentEmailHint = document.getElementById('recentEmailHint');
+  const useRecentEmail = document.getElementById('useRecentEmail');
+  const recentEmailLabel = document.getElementById('recentEmailLabel');
   let visible = false;
   toggle.addEventListener('click', (e) => {
     e.preventDefault();
@@ -53,6 +64,44 @@
   });
 
   const form = document.getElementById('loginForm');
+  const serverPrefill = (emailInput?.dataset.prefill || '').trim();
+  const storedEmail = window.localStorage.getItem('lastLoginEmail');
+  let suggestedEmail = '';
+  let hintLabel = '';
+
+  if (serverPrefill) {
+    suggestedEmail = serverPrefill;
+    hintLabel = 'Email vừa đăng ký:';
+  } else if (storedEmail) {
+    suggestedEmail = storedEmail;
+    hintLabel = 'Đăng nhập gần nhất:';
+  }
+
+  if (suggestedEmail && emailInput && recentEmailHint && useRecentEmail) {
+    emailInput.value = suggestedEmail;
+    recentEmailHint.classList.remove('d-none');
+    if (recentEmailLabel) {
+      recentEmailLabel.textContent = hintLabel;
+    }
+    useRecentEmail.textContent = suggestedEmail;
+  }
+
+  if (useRecentEmail && emailInput) {
+    useRecentEmail.addEventListener('click', () => {
+      emailInput.value = suggestedEmail || '';
+      emailInput.focus();
+    });
+  }
+
+  if (form && emailInput) {
+    form.addEventListener('submit', () => {
+      const value = emailInput.value.trim();
+      if (value) {
+        window.localStorage.setItem('lastLoginEmail', value.toLowerCase());
+      }
+    });
+  }
+
   form.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();

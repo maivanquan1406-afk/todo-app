@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% block title %}Nhiệm vụ {{ selected_date_display }}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block main_container %}
+<div class="day-layout">
+  <div class="day-shell">
+    {% set total_count = todos|length %}
+    {% set done_count = todos|selectattr('is_done')|list|length %}
+    {% set pending_count = total_count - done_count %}
+    <div class="day-hero">
+      <div class="day-hero-content">
+        <div class="day-hero-heading">
+          <div class="day-hero-date-card">
+            <span class="day-hero-date-label">Ngày đã chọn</span>
+            <strong class="day-hero-date-value">{{ selected_date_display | default(selected_date_str) }}</strong>
+            <span class="day-hero-date-sub">{{ selected_date_str }}</span>
+          </div>
+          <div class="day-hero-title">
+            <span class="day-hero-title-tag">Nhật ký trong ngày</span>
+            <h2 class="mb-0">Danh sách công việc</h2>
+          </div>
+        </div>
+        <div class="day-hero-actions">
+          <a href="/dashboard" class="btn btn-light text-primary px-4">
+            <i class="bi bi-arrow-left"></i> Quay lại lịch
+          </a>
+        </div>
+      </div>
+      <div class="day-hero-stats">
+        <div class="day-hero-stat day-hero-stat-total">
+          <span class="day-hero-stat-label">Tổng việc</span>
+          <strong>{{ total_count }}</strong>
+          <small>Toàn bộ mục trong ngày</small>
+        </div>
+        <div class="day-hero-stat day-hero-stat-pending">
+          <span class="day-hero-stat-label">Đang chờ</span>
+          <strong>{{ pending_count }}</strong>
+          <small>Chưa hoàn thành</small>
+        </div>
+        <div class="day-hero-stat day-hero-stat-done">
+          <span class="day-hero-stat-label">Hoàn thành</span>
+          <strong>{{ done_count }}</strong>
+          <small>Đã đánh dấu xong</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-panel day-combined-panel">
+      <div class="day-panel-section">
+        <div id="dayFormPanel" class="day-form-card">
+          <div class="day-panel-heading">
+            <h5 class="mb-1">Thêm công việc mới</h5>
+            <p class="text-muted mb-0">Ghi lại những việc cần xử lý trong ngày.</p>
+            <div class="day-clock mt-3" role="status" aria-live="polite">
+              <span class="day-clock-label">Giờ hiện tại</span>
+              <span class="day-clock-value" id="dayCurrentClock">--:--:--</span>
+              <span class="day-clock-tz" id="dayClockTimezone"></span>
+            </div>
+          </div>
+          {% if form_error %}
+          <div class="alert alert-warning day-form-alert mt-3 mb-0">
+            {{ form_error }}
+          </div>
+          {% endif %}
+          <form method="post" action="/dashboard/todos?next=/dashboard/day/{{ selected_date_str }}" id="dayTodoForm" autocomplete="off" class="mt-3">
+            <div class="row g-3">
+              <div class="col-lg-5">
+                <label for="dayTaskTitle" class="form-label">Tên công việc</label>
+                <input type="text" class="form-control" id="dayTaskTitle" name="title" placeholder="Ví dụ: Họp khách hàng" required minlength="3" value="{{ form_defaults.title | default('') }}">
+              </div>
+              <div class="col-sm-6 col-lg-3">
+                <label class="form-label">Giờ</label>
+                <div class="day-time-picker d-flex align-items-center gap-2">
+                  <select class="form-select day-time-select" id="dayTaskHour" aria-label="Giờ">
+                    {% for h in range(0, 24) %}
+                    <option value="{{ '%02d'|format(h) }}" {% if form_defaults.hour | default('') == '%02d'|format(h) %}selected{% endif %}>{{ '%02d'|format(h) }}</option>
+                    {% endfor %}
+                  </select>
+                  <span class="fw-semibold">:</span>
+                  <select class="form-select day-time-select" id="dayTaskMinute" aria-label="Phút">
+                    {% for m in range(0, 60) %}
+                    <option value="{{ '%02d'|format(m) }}" {% if form_defaults.minute | default('') == '%02d'|format(m) %}selected{% endif %}>{{ '%02d'|format(m) }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-sm-6 col-lg-3">
+                <label for="dayReminderLead" class="form-label">Nhắc trước (phút)</label>
+                <select class="form-select" id="dayReminderLead" name="reminder_minutes">
+                  {% set lead_options = [5, 10, 15, 30, 60, 120, 180] %}
+                  {% for opt in lead_options %}
+                  <option value="{{ opt }}" {% if (form_defaults.reminder | default(default_reminder_minutes)) == opt %}selected{% endif %}>{{ opt }} phút</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-12">
+                <label for="dayTaskDescription" class="form-label">Ghi chú</label>
+                <textarea class="form-control" id="dayTaskDescription" name="description" rows="2" placeholder="Ghi chú thêm...">{{ form_defaults.description | default('') }}</textarea>
+              </div>
+            </div>
+            <input type="hidden" name="due_date" id="dayDueInput" value="{{ selected_date_str }}">
+            <input type="hidden" name="priority" value="medium">
+            <input type="hidden" name="category" value="Daily">
+            <input type="hidden" name="status" value="backlog">
+            <div class="d-flex flex-wrap gap-2 mt-3">
+              <button type="reset" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-counterclockwise"></i> Làm mới
+              </button>
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-save"></i> Lưu công việc
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="day-panel-divider"></div>
+
+      <div class="day-panel-section">
+        {% if todos %}
+          <div class="day-task-list">
+          {% for todo in todos %}
+          <div class="border rounded-4 p-3 day-task-item {% if todo.is_done %}day-task-done{% endif %}"
+            data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}" title="Nhấn giữ để xóa" tabindex="0" role="group">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 day-task-header">
+              <div>
+                <h5 class="mb-1 fw-semibold day-task-title">{{ todo.title }}</h5>
+                {% if todo.due_display %}
+                <span class="day-task-time">{{ todo.due_display.split(' ')[1] if ' ' in todo.due_display else todo.due_display }}</span>
+                {% else %}
+                <span class="day-task-time text-muted">Chưa đặt giờ</span>
+                {% endif %}
+              </div>
+              <span class="day-status-chip {% if todo.is_done %}day-status-done{% else %}day-status-pending{% endif %}">
+                {% if todo.is_done %}Hoàn thành{% else %}Đang chờ{% endif %}
+              </span>
+            </div>
+            {% if todo.description %}
+            <div class="day-task-note mt-3 mb-3">
+              <span class="day-task-note-label">Lời nhắn</span>
+              <p class="day-task-note-text mb-0">{{ todo.description }}</p>
+            </div>
+            {% endif %}
+            <div class="d-flex flex-wrap gap-2">
+              {% if not todo.is_done %}
+              <form method="post" action="/dashboard/todos/{{ todo.id }}/complete?next=/dashboard/day/{{ selected_date_str }}" class="d-inline">
+                <button type="submit" class="btn btn-success btn-sm hold-exempt">
+                  <i class="bi bi-check-lg"></i> Đánh dấu hoàn thành
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          <form method="post" action="/dashboard/todos/{{ todo.id }}/delete?next=/dashboard/day/{{ selected_date_str }}" class="d-none" id="deleteForm{{ todo.id }}">
+            <input type="hidden" name="__confirm" value="1">
+          </form>
+          {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Chưa có công việc nào cho ngày này. Nhập nội dung ở trên để tạo mới.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="day-delete-overlay d-none" id="dayDeleteOverlay" role="dialog" aria-modal="true"
+     style="position:fixed;inset:0;background:rgba(15,23,42,0.45);display:flex;align-items:center;justify-content:center;padding:1.5rem;z-index:1050;">
+  <div class="day-delete-dialog" role="document" style="width:min(90vw,420px);background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(15,23,42,0.25);padding:1.75rem;">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <p class="text-uppercase text-muted small mb-1">Xóa công việc</p>
+        <h5 class="mb-0" id="dayDeleteOverlayTitle"></h5>
+      </div>
+      <button type="button" class="btn btn-link text-muted p-0" id="dayDeleteClose" aria-label="Đóng">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <p class="mb-4">Bạn có chắc muốn xóa mục này? Thao tác không thể hoàn tác.</p>
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" class="btn btn-outline-secondary" id="dayDeleteCancel">Giữ lại</button>
+      <button type="button" class="btn btn-danger" id="dayDeleteConfirm">Xóa</button>
+    </div>
+  </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function() {
+  const form = document.getElementById('dayTodoForm');
+  const taskItems = document.querySelectorAll('.day-task-item');
+  const deleteOverlay = document.getElementById('dayDeleteOverlay');
+  const deleteOverlayTitle = document.getElementById('dayDeleteOverlayTitle');
+  const deleteOverlayCancel = document.getElementById('dayDeleteCancel');
+  const deleteOverlayConfirm = document.getElementById('dayDeleteConfirm');
+  const deleteOverlayClose = document.getElementById('dayDeleteClose');
+  let pendingDeleteForm = null;
+  const hourSelect = document.getElementById('dayTaskHour');
+  const minuteSelect = document.getElementById('dayTaskMinute');
+  const dueInput = document.getElementById('dayDueInput');
+  const clockValue = document.getElementById('dayCurrentClock');
+  const clockTimezone = document.getElementById('dayClockTimezone');
+
+  if (clockTimezone) {
+    try {
+      const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      clockTimezone.textContent = resolved ? `(${resolved})` : '';
+    } catch (err) {
+      clockTimezone.textContent = '';
+    }
+  }
+
+  if (clockValue) {
+    const updateClock = () => {
+      const now = new Date();
+      try {
+        const formatted = now.toLocaleTimeString('vi-VN', { hour12: false });
+        clockValue.textContent = formatted;
+      } catch (err) {
+        clockValue.textContent = now.toTimeString().split(' ')[0];
+      }
+    };
+    updateClock();
+    setInterval(updateClock, 1000);
+  }
+
+  if (form && dueInput) {
+    form.addEventListener('submit', () => {
+      const hour = hourSelect ? hourSelect.value : '';
+      const minute = minuteSelect ? minuteSelect.value : '';
+      const timeValue = hour && minute ? `${hour}:${minute}` : '';
+      dueInput.value = timeValue ? '{{ selected_date_str }}T' + timeValue : '{{ selected_date_str }}';
+    });
+  }
+
+  taskItems.forEach(item => {
+    const todoId = item.getAttribute('data-todo-id');
+    const targetForm = document.getElementById(`deleteForm${todoId}`);
+    if (!targetForm) {
+      return;
+    }
+
+    let pressTimer;
+
+    const startPress = (event) => {
+      const exemptTarget = event.target.closest('.hold-exempt');
+      if (exemptTarget) {
+        return;
+      }
+      event.preventDefault();
+      item.classList.add('long-press-arming');
+      pressTimer = setTimeout(() => {
+        item.classList.remove('long-press-arming');
+        if (!deleteOverlay) {
+          targetForm.submit();
+          return;
+        }
+        deleteOverlayTitle.textContent = item.getAttribute('data-todo-title') || 'Công việc';
+        pendingDeleteForm = targetForm;
+        deleteOverlay.style.display = 'flex';
+        deleteOverlay.classList.remove('d-none');
+        document.body.classList.add('day-overlay-open');
+      }, 800);
+    };
+
+    const cancelPress = () => {
+      item.classList.remove('long-press-arming');
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
+
+    item.addEventListener('mousedown', startPress);
+    item.addEventListener('touchstart', startPress);
+    item.addEventListener('mouseup', cancelPress);
+    item.addEventListener('mouseleave', cancelPress);
+    item.addEventListener('touchend', cancelPress);
+    item.addEventListener('touchcancel', cancelPress);
+  });
+
+  const closeOverlay = () => {
+    deleteOverlay?.classList.add('d-none');
+    if (deleteOverlay) {
+      deleteOverlay.style.display = '';
+    }
+    document.body.classList.remove('day-overlay-open');
+    pendingDeleteForm = null;
+  };
+
+  const handleConfirm = () => {
+    if (pendingDeleteForm) {
+      pendingDeleteForm.submit();
+      pendingDeleteForm = null;
+    }
+    closeOverlay();
+  };
+
+  deleteOverlayConfirm?.addEventListener('click', handleConfirm);
+  deleteOverlayCancel?.addEventListener('click', closeOverlay);
+  deleteOverlayClose?.addEventListener('click', closeOverlay);
+  deleteOverlay?.addEventListener('click', (event) => {
+    if (event.target === deleteOverlay) {
+      closeOverlay();
+    }
+  });
+})();
+</script>
+{% endblock %}

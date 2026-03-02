@@ -1,7 +1,12 @@
-import pytest
-from datetime import datetime, timedelta, timezone
-from fastapi.testclient import TestClient
+import json
 import uuid
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from fastapi.testclient import TestClient
+from zoneinfo import ZoneInfo
+
+from app.core.config import settings
 
 
 @pytest.fixture
@@ -205,6 +210,50 @@ def test_todo_with_due_date(client: TestClient, user_a_token: str):
     data = response.json()
     assert data["due_date"] is not None
     assert data["tags"] == "important"
+
+
+def test_reminder_scheduler_honors_local_timezone(monkeypatch, client: TestClient, user_a_token: str):
+    """Ensure reminders trigger when due times are provided without timezone info"""
+    from app.services import reminder_service
+
+    due_local = datetime.now(ZoneInfo(settings.APP_TIMEZONE)).replace(second=0, microsecond=0) + timedelta(minutes=9)
+    due_str = due_local.strftime("%Y-%m-%dT%H:%M:%S")
+
+    response = client.post(
+        "/api/v1/todos/",
+        json={
+            "title": "Timezone task",
+            "due_date": due_str,
+            "tags": json.dumps({"reminder_minutes": 10}),
+        },
+        headers={"Authorization": f"Bearer {user_a_token}"},
+    )
+    assert response.status_code == 200
+
+    sent_messages: list[dict] = []
+
+    def fake_send_email(**kwargs):  # type: ignore[no-untyped-def]
+        sent_messages.append(kwargs)
+
+    monkeypatch.setattr(reminder_service, "send_email", fake_send_email)
+
+    reminder_service.reminder_scheduler._process_once()
+
+    assert len(sent_messages) == 1
+    assert "nhắc nhở" in sent_messages[0]["subject"].lower()
+
+
+def test_reminder_scheduler_does_not_require_smtp_from(monkeypatch):
+    from app.services.reminder_service import ReminderScheduler
+    from app.core import config
+
+    monkeypatch.setattr(config.settings, "SMTP_HOST", "smtp.test")
+    monkeypatch.setattr(config.settings, "SMTP_USERNAME", "user@test")
+    monkeypatch.setattr(config.settings, "SMTP_PASSWORD", "secret")
+    monkeypatch.setattr(config.settings, "SMTP_FROM", None)
+
+    scheduler = ReminderScheduler()
+    assert scheduler._smtp_ready() is True
 
 
 def test_overdue_endpoint(client: TestClient, user_a_token: str):

@@ -35,8 +35,14 @@ class ConflictError(AppError):
 class ValidationError(AppError):
     """Raised when business validation fails."""
 
-    def __init__(self, message: str = "Validation error", *, field: Optional[str] = None):
-        super().__init__(message, code="validation_error")
+    def __init__(
+        self,
+        message: str = "Validation error",
+        *,
+        field: Optional[str] = None,
+        code: Optional[str] = None,
+    ):
+        super().__init__(message, code=code or "validation_error")
         self.field = field
 
 
