@@ -239,17 +239,8 @@ body.day-overlay-open {
   z-index: 1;
 }
 
-.calendar-card {
-  border-radius: 32px;
-  border: 1px solid rgba(244, 114, 182, 0.25);
-  box-shadow: 0 35px 80px rgba(244, 114, 182, 0.15);
-  background: linear-gradient(180deg, rgba(255, 240, 248, 0.85), #ffffff 65%);
-}
-
 .calendar-card-header {
   background: linear-gradient(135deg, #f9a8d4, #f472b6);
-  border-radius: 28px;
-  padding: 1.5rem 2rem;
   color: #fff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
@@ -275,6 +266,9 @@ body.day-overlay-open {
 
 .calendar-card-body {
   padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .calendar-card-body #calendar {
@@ -283,8 +277,7 @@ body.day-overlay-open {
   padding: 1.5rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   border: 1px solid rgba(244, 114, 182, 0.2);
-  width: 100%;
-  max-width: 780px;
+  width: min(100%, 860px);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -304,8 +297,8 @@ body.day-overlay-open {
 
 .calendar-weekday-row {
   display: grid;
-  grid-template-columns: repeat(7, minmax(88px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 14px);
   margin-bottom: 0;
   width: 100%;
   justify-items: stretch;
@@ -326,8 +319,8 @@ body.day-overlay-open {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(88px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 14px);
   width: 100%;
   justify-items: stretch;
 }
@@ -335,8 +328,8 @@ body.day-overlay-open {
 .calendar-day-card {
   position: relative;
   border-radius: 16px;
-  padding: 0.65rem 0.75rem 0.9rem;
-  min-height: 100px;
+  padding: clamp(0.5rem, 1.4vw, 0.9rem) clamp(0.5rem, 1.4vw, 0.85rem) clamp(0.6rem, 1.6vw, 1rem);
+  min-height: clamp(90px, 14vw, 140px);
   background: linear-gradient(138deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 255, 0.95));
   border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
@@ -408,9 +401,9 @@ body.day-overlay-open {
 }
 
 .calendar-day-count {
-  width: 54px;
-  height: 54px;
-  border-radius: 14px;
+  width: clamp(40px, 6vw, 56px);
+  height: clamp(40px, 6vw, 56px);
+  border-radius: clamp(10px, 2vw, 14px);
   border: 1px solid rgba(148, 163, 184, 0.5);
   display: flex;
   align-items: center;
