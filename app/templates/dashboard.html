@@ -2,6 +2,11 @@
 {% block title %}Bảng điều khiển{% endblock %}
 {% block header %}{% endblock %}
 {% block content %}
+{% set total_todos = todos|length %}
+{% set completed_todos = todos|selectattr('is_done')|list|length %}
+{% set pending_todos = total_todos - completed_todos %}
+{% set scheduled_todos = todos|selectattr('due_date')|list|length %}
+{% set display_name = user.full_name if user.full_name else user.email %}
 <div class="dashboard-layout">
   <div class="dashboard-shell">
     <div class="row mb-4">
@@ -17,9 +22,44 @@
       </div>
     </div>
 
-    <div class="row mb-5 justify-content-center mt-4">
-      <div class="col-12 col-lg-11 col-xl-10">
-        <div class="card border-0 calendar-card">
+    <div class="card dashboard-hero text-white border-0 mb-4">
+      <div class="dashboard-hero-gradient"></div>
+      <div class="card-body">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+          <div>
+            <span class="text-uppercase text-white-50 fw-semibold">Xin chào, {{ display_name }}</span>
+            <h3 class="fw-bold mt-2 mb-3">Kiểm soát công việc của bạn ngay hôm nay</h3>
+            <p class="mb-0 text-white-50">Còn {{ pending_todos }} việc chưa hoàn thành — lên kế hoạch và hoàn tất từng nhiệm vụ.</p>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-light fw-semibold" href="/dashboard/day/{{ today_str }}">
+              <i class="bi bi-plus-circle me-1"></i> Thêm công việc hôm nay
+            </a>
+            <a class="btn btn-outline-light fw-semibold" href="/dashboard/day/{{ today_str }}">
+              <i class="bi bi-calendar-event me-1"></i> Xem lịch theo ngày
+            </a>
+          </div>
+        </div>
+        <div class="dashboard-hero-stats mt-4">
+          <div class="hero-stat">
+            <small>Tổng công việc</small>
+            <strong>{{ total_todos }}</strong>
+          </div>
+          <div class="hero-stat">
+            <small>Đã hoàn thành</small>
+            <strong>{{ completed_todos }}</strong>
+          </div>
+          <div class="hero-stat">
+            <small>Có hạn (có ngày)</small>
+            <strong>{{ scheduled_todos }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
+      <div class="col-12 col-xl-8">
+        <div class="card border-0 calendar-card h-100">
           <div class="calendar-card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-calendar3"></i> Lịch</h5>
             <div class="d-flex gap-2 align-items-center flex-wrap calendar-nav-group">
@@ -72,6 +112,15 @@
           </div>
         </div>
       </div>
+      <div class="col-12 col-xl-4">
+        <div class="card dashboard-note border-0 shadow-sm h-100">
+          <div class="card-body d-flex flex-column">
+            <h6 class="text-uppercase text-muted fw-bold">Ghi chú cảm hứng</h6>
+            <div class="custom-note-area flex-grow-1 mt-3" contenteditable="true"></div>
+            <p class="text-muted small mt-3 mb-0">Ghi lại mục tiêu trong ngày, khẩu hiệu yêu thích hoặc điều khiến bạn hào hứng.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -94,6 +143,6 @@
     {% endfor %}
   ];
 </script>
-<script src="{{ url_for('static', path='js/calendar.js') }}?v=20260303"></script>
-<script src="{{ url_for('static', path='js/reminders.js') }}"></script>
+<script src="{{ url_for('static', path='js/calendar.js') }}?v=20260304"></script>
+<script src="{{ url_for('static', path='js/reminders.js') }}?v=20260304"></script>
 {% endblock %}

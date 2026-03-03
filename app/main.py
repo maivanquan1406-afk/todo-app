@@ -326,6 +326,7 @@ def dashboard(request: Request):
             "user": user,
             "todos": todos_list,
             "prefill_date": selected_date,
+            "today_str": datetime.utcnow().strftime("%Y-%m-%d"),
         }
     )
 
