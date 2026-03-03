@@ -6,7 +6,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from starlette.responses import RedirectResponse
 
 from datetime import datetime, date
@@ -17,6 +16,41 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+
+class ForwardedProtoMiddleware:
+    """Minimal ASGI middleware that respects X-Forwarded-* headers."""
+
+    def __init__(self, app: FastAPI):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") in {"http", "websocket"}:
+            proto = None
+            host = None
+            for key_bytes, value_bytes in scope.get("headers", []):
+                key = key_bytes.decode("latin1").lower()
+                value = value_bytes.decode("latin1")
+                if key == "x-forwarded-proto" and not proto:
+                    proto = value.split(",")[0].strip()
+                elif key == "x-forwarded-host" and not host:
+                    host = value.split(",")[0].strip()
+
+            if proto or host:
+                scope = dict(scope)
+                if proto:
+                    scope["scheme"] = proto
+                if host:
+                    hostname, _, forwarded_port = host.partition(":")
+                    current_server = scope.get("server") or (hostname, None)
+                    port = current_server[1]
+                    if forwarded_port.isdigit():
+                        port = int(forwarded_port)
+                    elif port is None:
+                        port = 443 if proto == "https" else 80
+                    scope["server"] = (hostname, port)
+
+        await self.app(scope, receive, send)
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env", override=False)
@@ -98,7 +132,7 @@ app.add_middleware(
 )
 
 # Respect X-Forwarded-* headers from Railway/other proxies so generated URLs stay on HTTPS
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+app.add_middleware(ForwardedProtoMiddleware)
 
 # =======================
 # Routers (API)
