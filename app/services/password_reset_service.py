@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 import os
 import secrets
+import hmac
 
 import resend
 
@@ -36,19 +37,14 @@ def _email_lock(email: str):
         lock.release()
 
 
-def _ensure_timezone(value: datetime | str | None) -> datetime | None:
+def _ensure_timezone(value: datetime | None) -> datetime | None:
     if value is None:
         return None
-    if isinstance(value, str):
-        try:
-            value = datetime.fromisoformat(value)
-        except ValueError:
-            return None
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
-    return value
+    return value.astimezone(timezone.utc)
 
-OTP_EXPIRATION_MINUTES = 5
+OTP_EXPIRATION_MINUTES = 10
 OTP_LENGTH = 6
 GENERIC_MESSAGE = "If the email exists, an OTP has been sent."
 
@@ -64,19 +60,21 @@ class PasswordResetService:
                 return
             now = datetime.now(timezone.utc)
             expire_at = _ensure_timezone(user.otp_expire)
+
             reuse_existing = (
-                user.otp_code
-                and expire_at
+                user.otp_code is not None
+                and expire_at is not None
                 and expire_at > now
-                and not user.otp_used
+                and user.otp_used is False
             )
+
             if reuse_existing:
                 otp_value = user.otp_code
             else:
                 otp_value = self._generate_otp()
                 user.otp_code = otp_value
                 user.otp_used = False
-            user.otp_expire = now + timedelta(minutes=OTP_EXPIRATION_MINUTES)
+                user.otp_expire = now + timedelta(minutes=OTP_EXPIRATION_MINUTES)
             self._commit_user(user, action="create OTP")
         html_body = (
             "We received a request to reset your password.\n\n"
@@ -94,42 +92,70 @@ class PasswordResetService:
             logger.warning("OTP email could not be sent", exc_info=True)
 
     def verify_otp(self, email: str, otp: str) -> None:
-        cleaned_otp = otp.strip()
-        if len(cleaned_otp) != OTP_LENGTH or not cleaned_otp.isdigit():
-            raise ValidationError("OTP must be 6 digits", field="otp", code="invalid_otp")
-        user = self._get_user_by_email(email)
-        if not user or not user.otp_code:
-            raise ValidationError("OTP không hợp lệ hoặc đã hết hạn", field="otp", code="invalid_otp")
-        now = datetime.now(timezone.utc)
-        if user.otp_code != cleaned_otp:
-            raise ValidationError("OTP không hợp lệ hoặc đã hết hạn", field="otp", code="invalid_otp")
-        expire_at = _ensure_timezone(user.otp_expire)
-        user.otp_expire = expire_at
-        if not expire_at or expire_at < now:
-            raise ValidationError("OTP đã hết hạn", field="otp", code="invalid_otp")
-        if user.otp_used:
-            raise ValidationError("OTP đã được sử dụng", field="otp", code="invalid_otp")
-        user.otp_used = True
-        self._commit_user(user, action="verify OTP")
+        with _email_lock(email):
+            cleaned_otp = otp.strip()
+
+            if len(cleaned_otp) != OTP_LENGTH or not cleaned_otp.isdigit():
+                raise ValidationError("OTP phải gồm 6 chữ số", field="otp")
+
+            user = self._get_user_by_email(email)
+
+            if not user or not user.otp_code:
+                raise ValidationError("OTP không tồn tại", field="otp")
+
+            now = datetime.now(timezone.utc)
+            expire_at = _ensure_timezone(user.otp_expire)
+
+            logger.debug(
+                "OTP verify debug | db=%s input=%s expire=%s now=%s used=%s",
+                user.otp_code,
+                cleaned_otp,
+                expire_at,
+                now,
+                user.otp_used,
+            )
+
+            if user.otp_used:
+                raise ValidationError("OTP đã được sử dụng", field="otp")
+
+            if not expire_at or expire_at < now:
+                raise ValidationError("OTP đã hết hạn", field="otp")
+
+            if not hmac.compare_digest(user.otp_code, cleaned_otp):
+                raise ValidationError("OTP không chính xác", field="otp")
+
+            user.otp_used = True
+            self._commit_user(user, action="verify OTP")
 
     def reset_password(self, email: str, new_password: str) -> None:
-        if not (8 <= len(new_password) <= 128):
-            raise ValidationError("password length must be 8-128 characters", field="new_password")
-        user = self._get_user_by_email(email)
-        if not user:
-            raise ValidationError("Email không tồn tại", field="email")
-        now = datetime.now(timezone.utc)
-        expire_at = _ensure_timezone(user.otp_expire)
-        user.otp_expire = expire_at
-        if not user.otp_used or not user.otp_code:
-            raise ValidationError("OTP chưa được xác thực", field="otp", code="otp_not_verified")
-        if not expire_at or expire_at < now:
-            raise ValidationError("OTP đã hết hạn", field="otp", code="invalid_otp")
-        user.hashed_password = hash_password(new_password)
-        user.otp_code = None
-        user.otp_expire = None
-        user.otp_used = False
-        self._commit_user(user, action="reset password")
+        with _email_lock(email):
+            if not (8 <= len(new_password) <= 128):
+                raise ValidationError("password length must be 8-128 characters", field="new_password")
+            user = self._get_user_by_email(email)
+            if not user:
+                raise ValidationError("Email không tồn tại", field="email")
+            now = datetime.now(timezone.utc)
+            expire_at = _ensure_timezone(user.otp_expire)
+
+            if not user.otp_used:
+                raise ValidationError(
+                    "OTP chưa được xác thực",
+                    field="otp",
+                    code="otp_not_verified",
+                )
+
+            if not expire_at or expire_at < now:
+                raise ValidationError(
+                    "OTP đã hết hạn",
+                    field="otp",
+                    code="invalid_otp",
+                )
+
+            user.hashed_password = hash_password(new_password)
+            user.otp_code = None
+            user.otp_expire = None
+            user.otp_used = False
+            self._commit_user(user, action="reset password")
 
     def _generate_otp(self) -> str:
         value = secrets.randbelow(10 ** OTP_LENGTH)
@@ -154,18 +180,15 @@ class PasswordResetService:
             raise DatabaseError("Failed to persist user changes", original=exc) from exc
 
 VERIFIED_SENDER = "no-reply@todulist.online"
-resend.api_key = os.getenv("RESEND_API_KEY")
 
 
 def send_email(to_email: str, subject: str, html_content: str):
-    """Send transactional emails exclusively through Resend."""
+    api_key = os.getenv("RESEND_API_KEY")
 
-    if not resend.api_key:
+    if not api_key:
         raise EmailError("RESEND_API_KEY not configured")
 
-    key_preview = resend.api_key[:10]
-    print("USING RESEND API KEY:", key_preview)
-    print("SENDING FROM:", VERIFIED_SENDER)
+    resend.api_key = api_key
 
     normalized_html = html_content.replace("\n", "<br>")
 
@@ -180,6 +203,6 @@ def send_email(to_email: str, subject: str, html_content: str):
         )
         logger.info("Email sent to %s via Resend", to_email)
         return response
-    except Exception as exc:  # Resend SDK throws detailed errors we wrap in EmailError
+    except Exception as exc:
         logger.error("Resend API request failed: %s", exc, exc_info=True)
         raise EmailError(f"Resend failed: {exc}") from exc
