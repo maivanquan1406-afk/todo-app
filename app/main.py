@@ -19,6 +19,8 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(BASE_DIR / ".env", override=False)
+STATIC_DIR = BASE_DIR / "app" / "static"
+TEMPLATE_DIR = BASE_DIR / "app" / "templates"
 
 from app.routers import todos, auth, admin, password_reset_router
 from app.db import init_db
@@ -105,8 +107,8 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 # =======================
 # Static & Templates
 # =======================
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
 
 DEFAULT_TASK_META = {
