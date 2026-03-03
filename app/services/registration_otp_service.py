@@ -25,15 +25,15 @@ def request_otp(email: str) -> None:
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=OTP_EXPIRATION_MINUTES)
     with _store_lock:
         _otp_store[email] = (code, expires_at)
-    body = (
+    html_body = (
         "Cảm ơn bạn đã đăng ký tài khoản tại {app}.\n\n"
         "Mã OTP xác thực email của bạn là {otp}.\n"
         "Mã sẽ hết hạn sau {minutes} phút. Nếu bạn không thực hiện đăng ký, vui lòng bỏ qua email này."
     ).format(app=settings.APP_NAME, otp=code, minutes=OTP_EXPIRATION_MINUTES)
     send_email(
         to_email=email,
-        subject=f"{settings.APP_NAME} - Xác thực đăng ký",
-        body=body,
+        subject="Your OTP Code",
+        html_content=html_body,
     )
     logger.info("Registration OTP sent to %s", email)
 

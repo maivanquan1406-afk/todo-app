@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import json
+import os
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.config import logger, settings
@@ -31,8 +32,8 @@ class ReminderScheduler:
         if not settings.REMINDER_ENABLED:
             logger.info("Reminder scheduler disabled via config")
             return
-        if not self._smtp_ready():
-            logger.warning("Skipping reminder scheduler because SMTP is not fully configured")
+        if not self._resend_ready():
+            logger.warning("Skipping reminder scheduler because RESEND_API_KEY is missing")
             return
         if self._task:
             return
@@ -102,7 +103,7 @@ class ReminderScheduler:
                 send_email(
                     to_email=email,
                     subject=f"{settings.APP_NAME} - Nhắc nhở công việc sắp đến hạn",
-                    body=self._build_email_body(todo, lead_minutes),
+                    html_content=self._build_email_body(todo, lead_minutes),
                 )
             except EmailError:
                 logger.warning("Failed to send reminder email for todo %s", todo.id, exc_info=True)
@@ -138,12 +139,8 @@ class ReminderScheduler:
             return "không xác định"
         return target.astimezone(timezone.utc).strftime("%d/%m/%Y %H:%M UTC")
 
-    def _smtp_ready(self) -> bool:
-        return bool(
-            settings.SMTP_HOST
-            and settings.SMTP_USERNAME
-            and settings.SMTP_PASSWORD
-        )
+    def _resend_ready(self) -> bool:
+        return bool(os.environ.get("RESEND_API_KEY"))
 
     def _extract_lead_override(self, raw_tags: str, default: int) -> int:
         try:

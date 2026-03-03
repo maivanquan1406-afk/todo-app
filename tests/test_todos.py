@@ -243,17 +243,15 @@ def test_reminder_scheduler_honors_local_timezone(monkeypatch, client: TestClien
     assert "nhắc nhở" in sent_messages[0]["subject"].lower()
 
 
-def test_reminder_scheduler_does_not_require_smtp_from(monkeypatch):
+def test_reminder_scheduler_checks_resend_api_key(monkeypatch):
     from app.services.reminder_service import ReminderScheduler
-    from app.core import config
 
-    monkeypatch.setattr(config.settings, "SMTP_HOST", "smtp.test")
-    monkeypatch.setattr(config.settings, "SMTP_USERNAME", "user@test")
-    monkeypatch.setattr(config.settings, "SMTP_PASSWORD", "secret")
-    monkeypatch.setattr(config.settings, "SMTP_FROM", None)
-
+    monkeypatch.delenv("RESEND_API_KEY", raising=False)
     scheduler = ReminderScheduler()
-    assert scheduler._smtp_ready() is True
+    assert scheduler._resend_ready() is False
+
+    monkeypatch.setenv("RESEND_API_KEY", "re_test-key")
+    assert scheduler._resend_ready() is True
 
 
 def test_overdue_endpoint(client: TestClient, user_a_token: str):

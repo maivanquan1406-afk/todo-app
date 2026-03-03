@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import os
 import secrets
 
-import requests
+import resend
 
 from threading import Lock
 
@@ -78,7 +78,7 @@ class PasswordResetService:
                 user.otp_used = False
             user.otp_expire = now + timedelta(minutes=OTP_EXPIRATION_MINUTES)
             self._commit_user(user, action="create OTP")
-        body = (
+        html_body = (
             "We received a request to reset your password.\n\n"
             f"Your OTP code is {otp_value}.\n"
             f"It expires in {OTP_EXPIRATION_MINUTES} minutes.\n\n"
@@ -88,7 +88,7 @@ class PasswordResetService:
             send_email(
                 to_email=email,
                 subject=f"{settings.APP_NAME} password reset OTP",
-                body=body,
+                html_content=html_body,
             )
         except EmailError:
             logger.warning("OTP email could not be sent", exc_info=True)
@@ -153,40 +153,33 @@ class PasswordResetService:
             logger.error("DB error while processing %s", action, exc_info=True)
             raise DatabaseError("Failed to persist user changes", original=exc) from exc
 
-RESEND_API_URL = "https://api.resend.com/emails"
+VERIFIED_SENDER = "no-reply@todulist.online"
+resend.api_key = os.getenv("RESEND_API_KEY")
 
 
-def send_email(*, to_email: str, subject: str, body: str) -> None:
-    api_key = os.environ.get("RESEND_API_KEY")
-    sender = os.environ.get("EMAIL_FROM")
-    if not api_key:
-        raise EmailError("Missing RESEND_API_KEY environment variable")
-    if not sender:
-        raise EmailError("Missing EMAIL_FROM environment variable")
+def send_email(to_email: str, subject: str, html_content: str):
+    """Send transactional emails exclusively through Resend."""
 
-    payload = {
-        "from": sender,
-        "to": [to_email],
-        "subject": subject,
-        "html": body,
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
+    if not resend.api_key:
+        raise EmailError("RESEND_API_KEY not configured")
+
+    key_preview = resend.api_key[:10]
+    print("USING RESEND API KEY:", key_preview)
+    print("SENDING FROM:", VERIFIED_SENDER)
+
+    normalized_html = html_content.replace("\n", "<br>")
 
     try:
-        response = requests.post(RESEND_API_URL, headers=headers, json=payload, timeout=15)
-    except requests.RequestException as exc:
-        logger.error("Resend API request failed: %s", exc, exc_info=True)
-        raise EmailError("Unable to send email") from exc
-
-    if response.status_code >= 400:
-        logger.error(
-            "Resend API error (status=%s): %s",
-            response.status_code,
-            response.text,
+        response = resend.Emails.send(
+            {
+                "from": VERIFIED_SENDER,
+                "to": [to_email],
+                "subject": subject,
+                "html": normalized_html,
+            }
         )
-        raise EmailError("Unable to send email")
-
-    logger.info("Email sent to %s via Resend", to_email)
+        logger.info("Email sent to %s via Resend", to_email)
+        return response
+    except Exception as exc:  # Resend SDK throws detailed errors we wrap in EmailError
+        logger.error("Resend API request failed: %s", exc, exc_info=True)
+        raise EmailError(f"Resend failed: {exc}") from exc
