@@ -110,6 +110,28 @@ docker-compose up --build
 # Access at http://localhost:8000
 ```
 
+- Compose now mounts a named volume (`todo_data`) to `/data`, so your SQLite file survives container restarts.
+- The image entrypoint (`start.sh`) automatically stores SQLite databases under `/data` when `DATABASE_URL` is not set.
+
+### Deploying to Render with Docker
+
+1. Push this repository to GitHub then create a **Web Service** on [Render](https://render.com/) and choose **Deploy from GitHub (Docker)**.
+2. Render picks up the `Dockerfile` automatically. No build command is required.
+3. Add environment variables, for example:
+
+  | Key | Value |
+  | --- | ----- |
+  | `PORT` | `10000` (Render sets this automatically; you can still add it) |
+  | `PERSIST_DIR` | `/data` |
+  | `DATABASE_URL` | `sqlite:////data/todo.db` *(or a PostgreSQL URL if you enable Postgres)* |
+  | other secrets | SMTP, JWT secret, etc. |
+
+4. Attach a **Persistent Disk** to the service (>=1GB) and mount it at `/data`. Render CLI example:
+  ```bash
+  render disk create --name todo-data --size 1 --mount-path /data
+  ```
+5. Redeploy. The start script ensures the SQLite file exists at `/data/todo.db`, so data persists across deployments. Switch `DATABASE_URL` to PostgreSQL when you are ready for a managed database.
+
 ## Technology Stack
 
 - **Framework:** FastAPI

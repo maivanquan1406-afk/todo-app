@@ -15,4 +15,5 @@ pytest-asyncio
 httpx
 jinja2
 tzdata
+requests
 

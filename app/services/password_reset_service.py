@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
-from email.message import EmailMessage
+import os
 import secrets
-import smtplib
-import ssl
+
+import requests
 
 from threading import Lock
 
@@ -153,63 +153,40 @@ class PasswordResetService:
             logger.error("DB error while processing %s", action, exc_info=True)
             raise DatabaseError("Failed to persist user changes", original=exc) from exc
 
-
-def _require_smtp_config() -> dict:
-    missing: list[str] = []
-    host = settings.SMTP_HOST
-    port = settings.SMTP_PORT
-    username = settings.SMTP_USERNAME
-    password = settings.SMTP_PASSWORD
-    sender = settings.SMTP_FROM or username
-    if not host:
-        missing.append("SMTP_HOST")
-    if not username:
-        missing.append("SMTP_USERNAME")
-    if not password:
-        missing.append("SMTP_PASSWORD")
-    if not sender:
-        missing.append("SMTP_FROM")
-    if missing:
-        raise RuntimeError(f"Missing SMTP configuration values: {', '.join(missing)}")
-    return {
-        "host": host,
-        "port": port,
-        "username": username,
-        "password": password,
-        "sender": sender,
-        "use_ssl": settings.SMTP_USE_SSL,
-        "use_tls": settings.SMTP_USE_TLS,
-    }
+RESEND_API_URL = "https://api.resend.com/emails"
 
 
 def send_email(*, to_email: str, subject: str, body: str) -> None:
-    config = _require_smtp_config()
-    message = EmailMessage()
-    message["Subject"] = subject
-    message["From"] = config["sender"]
-    message["To"] = to_email
-    message.set_content(body)
+    api_key = os.environ.get("RESEND_API_KEY")
+    sender = os.environ.get("EMAIL_FROM")
+    if not api_key:
+        raise EmailError("Missing RESEND_API_KEY environment variable")
+    if not sender:
+        raise EmailError("Missing EMAIL_FROM environment variable")
 
-    use_ssl = config["use_ssl"] or config["port"] == 465
-    use_tls = config["use_tls"] and not use_ssl
-    smtp_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
-    ssl_context = ssl.create_default_context()
+    payload = {
+        "from": sender,
+        "to": [to_email],
+        "subject": subject,
+        "html": body,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
 
     try:
-        with smtp_cls(config["host"], config["port"], timeout=15) as server:
-            server.ehlo()
-            if use_tls:
-                server.starttls(context=ssl_context)
-                server.ehlo()
-            server.login(config["username"], config["password"])
-            server.send_message(message)
-        logger.info("Password reset email sent to %s via %s:%s", to_email, config["host"], config["port"])
-    except Exception as exc:
-        logger.error(
-            "SMTP send failed (host=%s port=%s): %s",
-            config["host"],
-            config["port"],
-            exc,
-            exc_info=True,
-        )
+        response = requests.post(RESEND_API_URL, headers=headers, json=payload, timeout=15)
+    except requests.RequestException as exc:
+        logger.error("Resend API request failed: %s", exc, exc_info=True)
         raise EmailError("Unable to send email") from exc
+
+    if response.status_code >= 400:
+        logger.error(
+            "Resend API error (status=%s): %s",
+            response.status_code,
+            response.text,
+        )
+        raise EmailError("Unable to send email")
+
+    logger.info("Email sent to %s via Resend", to_email)

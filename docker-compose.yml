@@ -8,9 +8,10 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=false
-      - DATABASE_URL=sqlite:///./todo.db
+      - DATABASE_URL=sqlite:////data/todo.db
+      - PERSIST_DIR=/data
     volumes:
-      - ./todo.db:/app/todo.db
+      - todo_data:/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -33,5 +34,7 @@ services:
   #     - postgres_data:/var/lib/postgresql/data
   #   restart: unless-stopped
 
-# volumes:
-#   postgres_data:
+volumes:
+  todo_data:
+    driver: local
+#  postgres_data:
