@@ -274,14 +274,15 @@ body.day-overlay-open {
 .calendar-card-body #calendar {
   background: linear-gradient(180deg, rgba(255, 243, 248, 0.95), #ffffff 70%);
   border-radius: 28px;
-  padding: 1.5rem;
+  padding: clamp(1rem, 2vw, 1.5rem);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   border: 1px solid rgba(244, 114, 182, 0.2);
-  width: min(100%, 860px);
+  width: 100%;
+  max-width: 860px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: clamp(0.6rem, 1.2vw, 1.1rem);
   align-items: stretch;
 }
 
@@ -298,7 +299,7 @@ body.day-overlay-open {
 .calendar-weekday-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(6px, 1vw, 14px);
+  gap: clamp(4px, 0.8vw, 12px);
   margin-bottom: 0;
   width: 100%;
   justify-items: stretch;
@@ -320,7 +321,7 @@ body.day-overlay-open {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(6px, 1vw, 14px);
+  gap: clamp(4px, 0.8vw, 12px);
   width: 100%;
   justify-items: stretch;
 }
@@ -328,8 +329,8 @@ body.day-overlay-open {
 .calendar-day-card {
   position: relative;
   border-radius: 16px;
-  padding: clamp(0.5rem, 1.4vw, 0.9rem) clamp(0.5rem, 1.4vw, 0.85rem) clamp(0.6rem, 1.6vw, 1rem);
-  min-height: clamp(90px, 14vw, 140px);
+  padding: clamp(0.45rem, 1.1vw, 0.85rem) clamp(0.45rem, 1.1vw, 0.8rem) clamp(0.5rem, 1.3vw, 0.95rem);
+  min-height: clamp(84px, 12vw, 130px);
   background: linear-gradient(138deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 255, 0.95));
   border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
@@ -382,6 +383,9 @@ body.day-overlay-open {
 }
 
 .calendar-day-chip {
+  position: absolute;
+  top: 12px;
+  right: 14px;
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
   background: rgba(236, 72, 153, 0.15);
@@ -393,7 +397,7 @@ body.day-overlay-open {
 }
 
 .calendar-day-body {
-  margin-top: 0.75rem;
+  margin-top: clamp(0.4rem, 1vw, 0.75rem);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -401,8 +405,8 @@ body.day-overlay-open {
 }
 
 .calendar-day-count {
-  width: clamp(40px, 6vw, 56px);
-  height: clamp(40px, 6vw, 56px);
+  width: clamp(32px, 4.5vw, 52px);
+  height: clamp(32px, 4.5vw, 52px);
   border-radius: clamp(10px, 2vw, 14px);
   border: 1px solid rgba(148, 163, 184, 0.5);
   display: flex;
@@ -423,6 +427,17 @@ body.day-overlay-open {
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
 }
 
+@media (max-width: 1100px) {
+  .calendar-card-body #calendar {
+    overflow-x: auto;
+  }
+
+  .calendar-weekday-row,
+  .calendar-grid {
+    min-width: 620px;
+  }
+}
+
 .calendar-day-badge {
   display: inline-flex;
   align-items: baseline;
@@ -434,74 +449,6 @@ body.day-overlay-open {
   font-weight: 600;
   font-size: 0.85rem;
   width: fit-content;
-}
-
-
-.calendar-day-header {
-  display: flex;
-  align-items: center;
-  min-height: 32px;
-}
-
-.calendar-day-number {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.calendar-day-current .calendar-day-number {
-  color: #db2777;
-}
-
-.calendar-day-chip {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(236, 72, 153, 0.12);
-  color: #be185d;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.calendar-day-empty-label {
-  font-size: 0.9rem;
-  .calendar-day-body {
-    margin-top: 0.8rem;
-    display: flex;
-    justify-content: center;
-    flex: 1;
-  }
-
-  .calendar-day-count {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #475569;
-    font-variant-numeric: tabular-nums;
-    align-self: flex-start;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-  }
-  .calendar-day-count-active {
-    border-color: transparent;
-    background: linear-gradient(145deg, #2563eb, #ec4899);
-    color: #fff;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
-  }
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .day-form-card .form-control,
