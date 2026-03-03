@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 from starlette.responses import RedirectResponse
 
 from datetime import datetime, date
@@ -95,6 +96,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Respect X-Forwarded-* headers from Railway/other proxies so generated URLs stay on HTTPS
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # =======================
 # Routers (API)
