@@ -25,13 +25,13 @@
     <div class="card dashboard-hero text-white border-0 mb-4">
       <div class="dashboard-hero-gradient"></div>
       <div class="card-body">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div class="dashboard-hero-layout">
           <div>
             <span class="text-uppercase text-white-50 fw-semibold">Xin chào, {{ display_name }}</span>
             <h3 class="fw-bold mt-2 mb-3">Kiểm soát công việc của bạn ngay hôm nay</h3>
             <p class="mb-0 text-white-50">Còn {{ pending_todos }} việc chưa hoàn thành — lên kế hoạch và hoàn tất từng nhiệm vụ.</p>
           </div>
-          <div class="d-flex flex-wrap gap-2">
+          <div class="hero-action-stack">
             <a class="btn btn-light fw-semibold" href="/dashboard/day/{{ today_str }}">
               <i class="bi bi-plus-circle me-1"></i> Thêm công việc hôm nay
             </a>
@@ -61,7 +61,7 @@
       <div class="col-12">
         <div class="card border-0 calendar-card h-100">
           <div class="calendar-card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <h5 class="mb-0 d-flex align-items-center gap-2"><i class="bi bi-calendar3"></i> Lịch</h5>
+            <h5 class="mb-0 d-flex align-items-center gap-2 calendar-header-title"><i class="bi bi-calendar3"></i> Lịch</h5>
             <div class="d-flex gap-2 align-items-center flex-wrap calendar-nav-group">
               <button type="button" class="btn btn-sm btn-light" id="prevMonth" title="Tháng trước">
                 <i class="bi bi-chevron-left"></i>
