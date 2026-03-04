@@ -274,7 +274,7 @@ body.day-overlay-open {
 .calendar-card-body #calendar {
   background: linear-gradient(180deg, rgba(255, 243, 248, 0.95), #ffffff 70%);
   border-radius: 28px;
-  padding: clamp(0.85rem, 2vw, 1.5rem);
+  padding: clamp(0.75rem, 1.5vw, 1.35rem);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   border: 1px solid rgba(244, 114, 182, 0.2);
   width: 100%;
@@ -299,7 +299,7 @@ body.day-overlay-open {
 .calendar-weekday-row {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(4px, 1vw, 14px);
+  gap: clamp(4px, 0.9vw, 12px);
   margin-bottom: 0;
   width: 100%;
   justify-items: stretch;
@@ -321,7 +321,7 @@ body.day-overlay-open {
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(4px, 1vw, 14px);
+  gap: clamp(4px, 0.9vw, 12px);
   width: 100%;
   justify-items: stretch;
 }
@@ -329,8 +329,8 @@ body.day-overlay-open {
 .calendar-day-card {
   position: relative;
   border-radius: 16px;
-  padding: clamp(0.35rem, 1vw, 0.75rem) clamp(0.35rem, 1vw, 0.7rem) clamp(0.45rem, 1.2vw, 0.85rem);
-  min-height: clamp(80px, 11vw, 120px);
+  padding: clamp(0.3rem, 0.9vw, 0.65rem) clamp(0.3rem, 0.9vw, 0.6rem) clamp(0.4rem, 1vw, 0.75rem);
+  min-height: clamp(70px, 10vw, 110px);
   background: linear-gradient(138deg, rgba(255, 255, 255, 0.95), rgba(245, 247, 255, 0.95));
   border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
@@ -373,7 +373,7 @@ body.day-overlay-open {
 }
 
 .calendar-day-number {
-  font-size: 1.45rem;
+  font-size: clamp(1rem, 3vw, 1.35rem);
   font-weight: 700;
   color: #0f172a;
 }
@@ -405,8 +405,8 @@ body.day-overlay-open {
 }
 
 .calendar-day-count {
-  width: clamp(30px, 4vw, 48px);
-  height: clamp(30px, 4vw, 48px);
+  width: clamp(26px, 3.5vw, 44px);
+  height: clamp(26px, 3.5vw, 44px);
   border-radius: clamp(10px, 2vw, 14px);
   border: 1px solid rgba(148, 163, 184, 0.5);
   display: flex;
@@ -472,20 +472,24 @@ body.day-overlay-open {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 620px) {
   .calendar-card-body {
-    padding: 1rem;
+    padding: 0.85rem;
   }
 
   .calendar-card-body #calendar {
     border-radius: 16px;
-    padding: 0.65rem;
+    padding: 0.55rem;
   }
 
   .calendar-weekday-row,
   .calendar-grid {
     width: 100%;
-    gap: 8px;
+    gap: 6px;
+  }
+
+  .calendar-day-card {
+    min-height: 68px;
   }
 }
 
@@ -520,24 +524,24 @@ body.day-overlay-open {
   }
 
   .calendar-day-card {
-    padding: 0.35rem 0.55rem 0.6rem;
-    min-height: 78px;
+    padding: 0.3rem 0.45rem 0.55rem;
+    min-height: 68px;
   }
 
   .calendar-day-number {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
   }
 
   .calendar-day-count {
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
+    width: 24px;
+    height: 24px;
+    font-size: 0.95rem;
   }
 
   .calendar-day-chip {
-    top: 8px;
-    right: 8px;
-    font-size: 0.65rem;
+    top: 6px;
+    right: 6px;
+    font-size: 0.6rem;
   }
 }
 
