@@ -121,6 +121,18 @@
         {% if todos %}
           <div class="day-task-list">
           {% for todo in todos %}
+          {% set due_iso = todo.due_date or '' %}
+          {% if due_iso and 'T' in due_iso %}
+            {% set due_parts = due_iso.split('T') %}
+            {% set due_base_date = due_parts[0] %}
+            {% set due_time = due_parts[1] %}
+            {% set due_hour = due_time[:2] %}
+            {% set due_minute = due_time[3:5] %}
+          {% else %}
+            {% set due_base_date = due_iso if due_iso else selected_date_str %}
+            {% set due_hour = '' %}
+            {% set due_minute = '' %}
+          {% endif %}
           <div class="border rounded-4 p-3 day-task-item {% if todo.is_done %}day-task-done{% endif %}"
             data-todo-id="{{ todo.id }}" data-todo-title="{{ todo.title }}" title="Nhấn giữ để xóa" tabindex="0" role="group">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 day-task-header">
@@ -136,13 +148,14 @@
                 {% if todo.is_done %}Hoàn thành{% else %}Đang chờ{% endif %}
               </span>
             </div>
-            {% if todo.description %}
-            <div class="day-task-note mt-3 mb-3">
+            <div class="day-task-note mt-3 mb-3 {% if not todo.description %}d-none{% endif %}" data-note-wrapper>
               <span class="day-task-note-label">Lời nhắn</span>
-              <p class="day-task-note-text mb-0">{{ todo.description }}</p>
+              <p class="day-task-note-text mb-0" data-note-text>{{ todo.description or '' }}</p>
             </div>
-            {% endif %}
             <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm day-edit-toggle hold-exempt" data-target="editForm{{ todo.id }}" aria-expanded="false">
+                <i class="bi bi-pencil-square"></i> Chỉnh sửa
+              </button>
               {% if not todo.is_done %}
               <form method="post" action="/dashboard/todos/{{ todo.id }}/complete?next=/dashboard/day/{{ selected_date_str }}" class="d-inline">
                 <button type="submit" class="btn btn-success btn-sm hold-exempt">
@@ -150,6 +163,50 @@
                 </button>
               </form>
               {% endif %}
+            </div>
+            <div class="day-edit-panel d-none hold-exempt" id="editForm{{ todo.id }}">
+              <form method="post" action="/dashboard/todos/{{ todo.id }}/update?next=/dashboard/day/{{ selected_date_str }}" class="day-edit-form">
+                <div class="row g-3">
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1">Ngày</label>
+                    <input type="date" class="form-control" name="edit_date" value="{{ due_base_date }}" />
+                    <small class="text-muted day-edit-hint">Để trống để xóa ngày.</small>
+                  </div>
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1">Giờ</label>
+                    <div class="day-time-picker d-flex align-items-center gap-2">
+                      <select class="form-select day-time-select" name="edit_hour">
+                        <option value="">--</option>
+                        {% for h in range(0, 24) %}
+                        {% set hour_val = '%02d'|format(h) %}
+                        <option value="{{ hour_val }}" {% if due_hour == hour_val %}selected{% endif %}>{{ hour_val }}</option>
+                        {% endfor %}
+                      </select>
+                      <span class="fw-semibold">:</span>
+                      <select class="form-select day-time-select" name="edit_minute">
+                        <option value="">--</option>
+                        {% for m in range(0, 60) %}
+                        {% set minute_val = '%02d'|format(m) %}
+                        <option value="{{ minute_val }}" {% if due_minute == minute_val %}selected{% endif %}>{{ minute_val }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <small class="text-muted day-edit-hint">Chọn "--" để bỏ giờ cụ thể.</small>
+                  </div>
+                  <div class="col-12 col-lg-6">
+                    <label class="form-label mb-1">Chú thích</label>
+                    <textarea class="form-control" name="description" rows="2" placeholder="Cập nhật ghi chú...">{{ todo.description or '' }}</textarea>
+                  </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button type="submit" class="btn btn-primary btn-sm hold-exempt">
+                    <i class="bi bi-save"></i> Lưu thay đổi
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm day-edit-cancel hold-exempt" data-target="editForm{{ todo.id }}">
+                    Đóng
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
           <form method="post" action="/dashboard/todos/{{ todo.id }}/delete?next=/dashboard/day/{{ selected_date_str }}" class="d-none" id="deleteForm{{ todo.id }}">
@@ -307,6 +364,85 @@
       closeOverlay();
     }
   });
+
+  const togglePanel = (panelId, desiredState) => {
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+      return false;
+    }
+    const shouldShow = typeof desiredState === 'boolean' ? desiredState : panel.classList.contains('d-none');
+    panel.classList.toggle('d-none', !shouldShow);
+    return shouldShow;
+  };
+
+  const updateToggleState = (targetId, isOpen) => {
+    const selector = `.day-edit-toggle[data-target="${targetId}"]`;
+    const toggleBtn = document.querySelector(selector);
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', String(isOpen));
+    }
+  };
+
+  document.querySelectorAll('.day-edit-toggle').forEach(btn => {
+    const targetId = btn.getAttribute('data-target');
+    if (!targetId) {
+      return;
+    }
+    btn.addEventListener('click', () => {
+      const isOpen = togglePanel(targetId);
+      updateToggleState(targetId, isOpen);
+    });
+  });
+
+  document.querySelectorAll('.day-edit-cancel').forEach(btn => {
+    const targetId = btn.getAttribute('data-target');
+    if (!targetId) {
+      return;
+    }
+    btn.addEventListener('click', () => {
+      togglePanel(targetId, false);
+      updateToggleState(targetId, false);
+    });
+  });
+
+    document.querySelectorAll('.day-edit-form').forEach(editForm => {
+      const submitBtn = editForm.querySelector('button[type="submit"]');
+      const handleEditSubmit = async (event) => {
+        event.preventDefault();
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.dataset.originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Đang lưu';
+        }
+        const formData = new FormData(editForm);
+        let response;
+        try {
+          response = await fetch(editForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+          });
+        } catch (err) {
+          response = null;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = submitBtn.dataset.originalText || submitBtn.innerHTML;
+        }
+
+        if (response && response.ok) {
+          window.location.reload();
+          return;
+        }
+
+        editForm.removeEventListener('submit', handleEditSubmit);
+        editForm.submit();
+      };
+
+      editForm.addEventListener('submit', handleEditSubmit);
+    });
 })();
 </script>
 {% endblock %}

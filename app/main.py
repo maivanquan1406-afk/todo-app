@@ -286,6 +286,22 @@ def _parse_form_due_date(raw_due: Optional[str]) -> tuple[date, Optional[str], O
     return parsed_date, hour, minute
 
 
+def _combine_due_from_parts(date_part: Optional[str], hour_part: Optional[str], minute_part: Optional[str]) -> Optional[datetime]:
+    if not date_part:
+        return None
+    iso_string = date_part.strip()
+    if not iso_string:
+        return None
+    hour_value = (hour_part or "").strip()
+    minute_value = (minute_part or "").strip()
+    if hour_value and minute_value:
+        iso_string = f"{iso_string}T{hour_value}:{minute_value}"
+    try:
+        return datetime.fromisoformat(iso_string)
+    except ValueError:
+        return None
+
+
 def _render_day_page(
     request: Request,
     user,
@@ -465,6 +481,63 @@ def dashboard_create_todo(
 
     if expects_json:
         return JSONResponse(_build_todo_payload(todo), status_code=201)
+    return RedirectResponse(_safe_redirect_target(request), status_code=303)
+
+
+@app.post("/dashboard/todos/{todo_id}/update")
+def dashboard_update_todo(
+    todo_id: int,
+    request: Request,
+    title: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    due_date: Optional[str] = Form(None),
+    edit_date: Optional[str] = Form(None),
+    edit_hour: Optional[str] = Form(None),
+    edit_minute: Optional[str] = Form(None),
+):
+    expects_json = "application/json" in (request.headers.get("accept", "").lower())
+    user = _resolve_dashboard_user(request)
+    if not user:
+        if expects_json:
+            return JSONResponse({"error": "unauthorized"}, status_code=401)
+        return RedirectResponse("/api/v1/auth/login-page", status_code=302)
+
+    parsed_due = None
+    if due_date:
+        try:
+            parsed_due = datetime.fromisoformat(due_date)
+        except ValueError:
+            parsed_due = None
+    elif edit_date is not None or edit_hour is not None or edit_minute is not None:
+        parsed_due = _combine_due_from_parts(edit_date, edit_hour, edit_minute)
+
+    payload_kwargs = {}
+    if title is not None and title.strip():
+        payload_kwargs["title"] = title.strip()
+    if description is not None:
+        payload_kwargs["description"] = description
+    if due_date is not None or edit_date is not None or edit_hour is not None or edit_minute is not None:
+        payload_kwargs["due_date"] = parsed_due
+
+    if not payload_kwargs:
+        if expects_json:
+            return JSONResponse({"error": "no_changes"}, status_code=400)
+        return RedirectResponse(_safe_redirect_target(request), status_code=303)
+
+    try:
+        updated = todo_service.update(
+            todo_id,
+            user.id,
+            TodoUpdate(**payload_kwargs)
+        )
+    except AppError as exc:
+        logger.error("Dashboard update todo failed", exc_info=True)
+        if expects_json:
+            return JSONResponse({"error": "failed_to_update"}, status_code=500)
+        return HTMLResponse("Internal server error", status_code=500)
+
+    if expects_json:
+        return JSONResponse(_build_todo_payload(updated))
     return RedirectResponse(_safe_redirect_target(request), status_code=303)
 
 

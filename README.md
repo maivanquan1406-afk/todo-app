@@ -244,4 +244,4 @@ Built for Lec05 - Application Development Course
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8301
 
 # địa chỉ
-http://127.0.0.1:8301/api/v1/auth/login-page
+http://127.0.0.1:8301/api/v1/auth/login-page  
